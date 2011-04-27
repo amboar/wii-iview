@@ -891,4 +891,55 @@ class GuiFileBrowser : public GuiElement
 		GuiTrigger * trigHeldA;
 };
 
+//!Display a list of files
+class GuiTreeBrowser : public GuiElement
+{
+	public:
+		GuiTreeBrowser(int w, int h);
+		~GuiTreeBrowser();
+		void ResetState();
+		void SetFocus(int f);
+		void Draw();
+		void TriggerUpdate();
+		void Update(GuiTrigger * t);
+		GuiButton * nodeList[FILE_PAGESIZE];
+	protected:
+		int selectedItem;
+		int numEntries;
+		bool listChanged;
+
+		GuiText * nodeListText[FILE_PAGESIZE];
+		GuiImage * nodeListBg[FILE_PAGESIZE];
+		GuiImage * nodeListFolder[FILE_PAGESIZE];
+
+		GuiButton * arrowUpBtn;
+		GuiButton * arrowDownBtn;
+		GuiButton * scrollbarBoxBtn;
+
+		GuiImage * bgTreeSelectionImg;
+		GuiImage * scrollbarImg;
+		GuiImage * arrowDownImg;
+		GuiImage * arrowDownOverImg;
+		GuiImage * arrowUpImg;
+		GuiImage * arrowUpOverImg;
+		GuiImage * scrollbarBoxImg;
+		GuiImage * scrollbarBoxOverImg;
+
+		GuiImageData * bgTreeSelection;
+		GuiImageData * bgTreeSelectionEntry;
+		GuiImageData * treeFolder;
+		GuiImageData * scrollbar;
+		GuiImageData * arrowDown;
+		GuiImageData * arrowDownOver;
+		GuiImageData * arrowUp;
+		GuiImageData * arrowUpOver;
+		GuiImageData * scrollbarBox;
+		GuiImageData * scrollbarBoxOver;
+
+		GuiSound * btnSoundOver;
+		GuiSound * btnSoundClick;
+		GuiTrigger * trigA;
+		GuiTrigger * trigHeldA;
+};
+
 #endif

@@ -14,6 +14,7 @@
 #include <wiiuse/wpad.h>
 #include <sys/dir.h>
 #include <malloc.h>
+#include <iview.h>
 
 #include "treebrowser.h"
 #include "menu.h"
@@ -21,7 +22,7 @@
 TREEBROWSERINFO treeBrowser;
 TREEBROWSERENTRY * treeBrowserList = NULL; // list of immediate children in treeBrowser
 
-TREEBROWSERENTRY * rootNode;
+TREEBROWSERENTRY rootNode;
 
 /****************************************************************************
  * ResetTreeBrowser()
@@ -225,9 +226,85 @@ int BrowserChangeNode()
  ***************************************************************************/
 int BrowseTree()
 {
-	//sprintf(treeBrowser.dir, "/");
-	//sprintf(rootdir, "sd:/");
-	//_ParseDirectory(); // Parse root directory
-	//return treeBrowser.numEntries;
-	return 0;
+    int return_value = 0;
+
+    // libiview variable initialisation - can't declare these inline as g++
+    // barfs about jumping over declarations.
+    char *config_buf;
+    ssize_t config_buf_len;
+
+    struct iv_config *iview_config;
+
+    char *index_buf;
+    ssize_t index_buf_len;
+
+    struct iv_series *index;
+    int index_len;
+
+    char *items_buf;
+
+    // root node value initialisation
+    rootNode.parent = NULL;
+    rootNode.children = NULL;
+    rootNode.numChildren = 0;
+    snprintf(rootNode.name, MAXJOLIET, "%s", "ROOT");
+    snprintf(rootNode.name, MAXDISPLAY, "%s", "ROOT");
+
+    // start querying ABC iview servers
+    config_buf_len = iv_get_xml_buffer(IV_CONFIG_URI, &config_buf);
+    if(0 > config_buf_len) {
+        return -1;
+    }
+    if(0 > iv_get_config(config_buf, config_buf_len, &iview_config)) {
+        return_value = -2;
+        goto config_cleanup;
+    }
+    index_buf_len = iv_get_index(iview_config, &index_buf);
+    if(0 > index_buf_len) {
+        return_value = -3;
+        goto config_cleanup;
+    }
+    index_len = iv_parse_index(index_buf, &index);
+    if(0 > index_len) {
+        return_value = -4;
+        goto index_buf_cleanup;
+    }
+
+    // populate tree root node with the series index elements
+    rootNode.children = (TREEBROWSERENTRY *)calloc(index_len, sizeof(rootNode));
+    rootNode.numChildren = index_len;
+    for(int i=0; i<index_len; i++) {
+        TREEBROWSERENTRY *c = &rootNode.children[i];
+        c->parent = &rootNode;
+        c->children = NULL;
+        c->numChildren = 0;
+        snprintf(c->name, MAXJOLIET, "%s", index[i].title);
+        snprintf(c->displayname, MAXDISPLAY, "%s", index[i].title);
+        /*
+        const ssize_t items_buf_len =
+            iv_get_series_items(iview_config, index[i], &items_buf);
+        if(0 > items_buf_len) {
+            continue;
+        }
+        struct iv_item *items;
+        const int items_len =
+            iv_parse_series_items(series_buf, series_buf_len, &items);
+        if(0 > items_len) {
+            goto series_buf_cleanup;
+        }
+series_buf_cleanup:
+        iv_destroy_series_items(items, items_len);
+        */
+    }
+index_buf_cleanup:
+    iv_destroy_xml_buffer(index_buf);
+config_cleanup:
+    iv_destroy_config(iview_config);
+config_buf_cleanup:
+    iv_destroy_xml_buffer(config_buf);
+    //sprintf(treeBrowser.dir, "/");
+    //sprintf(rootdir, "sd:/");
+    //_ParseDirectory(); // Parse root directory
+    //return treeBrowser.numEntries;
+    return return_value;
 }

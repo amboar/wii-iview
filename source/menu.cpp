@@ -20,6 +20,7 @@
 #include "input.h"
 #include "filelist.h"
 #include "filebrowser.h"
+#include "treebrowser.h"
 
 #define THREAD_SLEEP 100
 
@@ -314,7 +315,7 @@ static int MenuBrowseDevice()
 	ShutoffRumble();
 
 	// populate initial directory listing
-	if(BrowseDevice() <= 0)
+	if(BrowseTree() <= 0)
 	{
 		int choice = WindowPrompt(
 		"Error",
@@ -339,7 +340,7 @@ static int MenuBrowseDevice()
 	GuiTrigger trigA;
 	trigA.SetSimpleTrigger(-1, WPAD_BUTTON_A | WPAD_CLASSIC_BUTTON_A, PAD_BUTTON_A);
 
-	GuiFileBrowser fileBrowser(552, 248);
+	GuiTreeBrowser fileBrowser(552, 248);
 	fileBrowser.SetAlignment(ALIGN_CENTRE, ALIGN_TOP);
 	fileBrowser.SetPosition(0, 100);
 
@@ -374,16 +375,16 @@ static int MenuBrowseDevice()
 		// set MENU_EXIT if A button pressed on a file
 		for(i=0; i < FILE_PAGESIZE; i++)
 		{
-			if(fileBrowser.fileList[i]->GetState() == STATE_CLICKED)
+			if(fileBrowser.nodeList[i]->GetState() == STATE_CLICKED)
 			{
-				fileBrowser.fileList[i]->ResetState();
+				fileBrowser.nodeList[i]->ResetState();
 				// check corresponding browser entry
-				if(browserList[browser.selIndex].isdir)
+				if(0 < treeBrowserList[treeBrowser.selIndex].numChildren)
 				{
 					if(BrowserChangeFolder())
 					{
 						fileBrowser.ResetState();
-						fileBrowser.fileList[0]->SetState(STATE_SELECTED);
+						fileBrowser.nodeList[0]->SetState(STATE_SELECTED);
 						fileBrowser.TriggerUpdate();
 					}
 					else
@@ -418,7 +419,7 @@ static int MenuSettings()
 {
 	int menu = MENU_NONE;
 
-	GuiText titleTxt("Settings", 28, (GXColor){255, 255, 255, 255});
+	GuiText titleTxt("ABC iView Wii", 28, (GXColor){255, 255, 255, 255});
 	titleTxt.SetAlignment(ALIGN_LEFT, ALIGN_TOP);
 	titleTxt.SetPosition(50,50);
 
@@ -447,67 +448,6 @@ static int MenuSettings()
 	fileBtn.SetTrigger(&trigA);
 	fileBtn.SetEffectGrow();
 
-	GuiText videoBtnTxt("Video", 22, (GXColor){0, 0, 0, 255});
-	videoBtnTxt.SetWrap(true, btnLargeOutline.GetWidth()-30);
-	GuiImage videoBtnImg(&btnLargeOutline);
-	GuiImage videoBtnImgOver(&btnLargeOutlineOver);
-	GuiButton videoBtn(btnLargeOutline.GetWidth(), btnLargeOutline.GetHeight());
-	videoBtn.SetAlignment(ALIGN_CENTRE, ALIGN_TOP);
-	videoBtn.SetPosition(0, 120);
-	videoBtn.SetLabel(&videoBtnTxt);
-	videoBtn.SetImage(&videoBtnImg);
-	videoBtn.SetImageOver(&videoBtnImgOver);
-	videoBtn.SetSoundOver(&btnSoundOver);
-	videoBtn.SetTrigger(&trigA);
-	videoBtn.SetEffectGrow();
-
-	GuiText savingBtnTxt1("Saving", 22, (GXColor){0, 0, 0, 255});
-	GuiText savingBtnTxt2("&", 18, (GXColor){0, 0, 0, 255});
-	GuiText savingBtnTxt3("Loading", 22, (GXColor){0, 0, 0, 255});
-	savingBtnTxt1.SetPosition(0, -20);
-	savingBtnTxt3.SetPosition(0, +20);
-	GuiImage savingBtnImg(&btnLargeOutline);
-	GuiImage savingBtnImgOver(&btnLargeOutlineOver);
-	GuiButton savingBtn(btnLargeOutline.GetWidth(), btnLargeOutline.GetHeight());
-	savingBtn.SetAlignment(ALIGN_RIGHT, ALIGN_TOP);
-	savingBtn.SetPosition(-50, 120);
-	savingBtn.SetLabel(&savingBtnTxt1, 0);
-	savingBtn.SetLabel(&savingBtnTxt2, 1);
-	savingBtn.SetLabel(&savingBtnTxt3, 2);
-	savingBtn.SetImage(&savingBtnImg);
-	savingBtn.SetImageOver(&savingBtnImgOver);
-	savingBtn.SetSoundOver(&btnSoundOver);
-	savingBtn.SetTrigger(&trigA);
-	savingBtn.SetEffectGrow();
-
-	GuiText menuBtnTxt("Menu", 22, (GXColor){0, 0, 0, 255});
-	menuBtnTxt.SetWrap(true, btnLargeOutline.GetWidth()-30);
-	GuiImage menuBtnImg(&btnLargeOutline);
-	GuiImage menuBtnImgOver(&btnLargeOutlineOver);
-	GuiButton menuBtn(btnLargeOutline.GetWidth(), btnLargeOutline.GetHeight());
-	menuBtn.SetAlignment(ALIGN_CENTRE, ALIGN_TOP);
-	menuBtn.SetPosition(-125, 250);
-	menuBtn.SetLabel(&menuBtnTxt);
-	menuBtn.SetImage(&menuBtnImg);
-	menuBtn.SetImageOver(&menuBtnImgOver);
-	menuBtn.SetSoundOver(&btnSoundOver);
-	menuBtn.SetTrigger(&trigA);
-	menuBtn.SetEffectGrow();
-
-	GuiText networkBtnTxt("Network", 22, (GXColor){0, 0, 0, 255});
-	networkBtnTxt.SetWrap(true, btnLargeOutline.GetWidth()-30);
-	GuiImage networkBtnImg(&btnLargeOutline);
-	GuiImage networkBtnImgOver(&btnLargeOutlineOver);
-	GuiButton networkBtn(btnLargeOutline.GetWidth(), btnLargeOutline.GetHeight());
-	networkBtn.SetAlignment(ALIGN_CENTRE, ALIGN_TOP);
-	networkBtn.SetPosition(125, 250);
-	networkBtn.SetLabel(&networkBtnTxt);
-	networkBtn.SetImage(&networkBtnImg);
-	networkBtn.SetImageOver(&networkBtnImgOver);
-	networkBtn.SetSoundOver(&btnSoundOver);
-	networkBtn.SetTrigger(&trigA);
-	networkBtn.SetEffectGrow();
-
 	GuiText exitBtnTxt("Exit", 22, (GXColor){0, 0, 0, 255});
 	GuiImage exitBtnImg(&btnOutline);
 	GuiImage exitBtnImgOver(&btnOutlineOver);
@@ -522,33 +462,11 @@ static int MenuSettings()
 	exitBtn.SetTrigger(&trigHome);
 	exitBtn.SetEffectGrow();
 
-	GuiText resetBtnTxt("Reset Settings", 22, (GXColor){0, 0, 0, 255});
-	GuiImage resetBtnImg(&btnOutline);
-	GuiImage resetBtnImgOver(&btnOutlineOver);
-	GuiButton resetBtn(btnOutline.GetWidth(), btnOutline.GetHeight());
-	resetBtn.SetAlignment(ALIGN_RIGHT, ALIGN_BOTTOM);
-	resetBtn.SetPosition(-100, -35);
-	resetBtn.SetLabel(&resetBtnTxt);
-	resetBtn.SetImage(&resetBtnImg);
-	resetBtn.SetImageOver(&resetBtnImgOver);
-	resetBtn.SetSoundOver(&btnSoundOver);
-	resetBtn.SetTrigger(&trigA);
-	resetBtn.SetEffectGrow();
-
 	HaltGui();
 	GuiWindow w(screenwidth, screenheight);
 	w.Append(&titleTxt);
 	w.Append(&fileBtn);
-	w.Append(&videoBtn);
-	w.Append(&savingBtn);
-	w.Append(&menuBtn);
-
-#ifdef HW_RVL
-	w.Append(&networkBtn);
-#endif
-
 	w.Append(&exitBtn);
-	w.Append(&resetBtn);
 
 	mainWindow->Append(&w);
 
@@ -561,40 +479,11 @@ static int MenuSettings()
 		if(fileBtn.GetState() == STATE_CLICKED)
 		{
 			menu = MENU_BROWSE_DEVICE;
+                        continue;
 		}
-		else if(videoBtn.GetState() == STATE_CLICKED)
-		{
-			menu = MENU_SETTINGS_FILE;
-		}
-		else if(savingBtn.GetState() == STATE_CLICKED)
-		{
-			menu = MENU_SETTINGS_FILE;
-		}
-		else if(menuBtn.GetState() == STATE_CLICKED)
-		{
-			menu = MENU_SETTINGS_FILE;
-		}
-		else if(networkBtn.GetState() == STATE_CLICKED)
-		{
-			menu = MENU_SETTINGS_FILE;
-		}
-		else if(exitBtn.GetState() == STATE_CLICKED)
+		if(exitBtn.GetState() == STATE_CLICKED)
 		{
 			menu = MENU_EXIT;
-		}
-		else if(resetBtn.GetState() == STATE_CLICKED)
-		{
-			resetBtn.ResetState();
-
-			int choice = WindowPrompt(
-				"Reset Settings",
-				"Are you sure that you want to reset your settings?",
-				"Yes",
-				"No");
-			if(choice == 1)
-			{
-				// reset settings
-			}
 		}
 	}
 
@@ -776,10 +665,6 @@ void MainMenu(int menu)
 
 	ResumeGui();
 
-	bgMusic = new GuiSound(bg_music_ogg, bg_music_ogg_size, SOUND_OGG);
-	bgMusic->SetVolume(50);
-	bgMusic->Play(); // startup music
-
 	while(currentMenu != MENU_EXIT)
 	{
 		switch (currentMenu)
@@ -805,8 +690,6 @@ void MainMenu(int menu)
 
 	HaltGui();
 
-	bgMusic->Stop();
-	delete bgMusic;
 	delete bgImg;
 	delete mainWindow;
 

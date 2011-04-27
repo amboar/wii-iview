@@ -7,8 +7,8 @@
  * Generic file routines - reading, writing, browsing
  ****************************************************************************/
 
-#ifndef _FILEBROWSER_H_
-#define _FILEBROWSER_H_
+#ifndef _TREEBROWSER_H_
+#define _TREEBROWSER_H_
 
 #include <unistd.h>
 #include <gccore.h>
@@ -34,10 +34,11 @@ typedef struct _TREEBROWSERENTRY
 
 extern TREEBROWSERINFO treeBrowser;
 extern TREEBROWSERENTRY * treeBrowserList;
-extern TREEBROWSERENTRY * rootNode;
+extern TREEBROWSERENTRY rootNode;
 
 int UpdateNodeName(int method);
 void ResetTreeBrowser();
 int BrowserChangeNode();
+int BrowseTree();
 
 #endif
