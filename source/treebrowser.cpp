@@ -273,6 +273,7 @@ int BrowseTree()
     // populate tree root node with the series index elements
     rootNode.children = (TREEBROWSERENTRY *)calloc(index_len, sizeof(rootNode));
     rootNode.numChildren = index_len;
+    return_value = index_len;
     for(int i=0; i<index_len; i++) {
         TREEBROWSERENTRY *c = &rootNode.children[i];
         c->parent = &rootNode;
@@ -296,6 +297,7 @@ series_buf_cleanup:
         iv_destroy_series_items(items, items_len);
         */
     }
+    treeBrowserList = rootNode.children;
 index_buf_cleanup:
     iv_destroy_xml_buffer(index_buf);
 config_cleanup:

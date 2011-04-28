@@ -314,12 +314,17 @@ static int MenuBrowseDevice()
 
 	ShutoffRumble();
 
+
+        const int result = BrowseTree();
+        char c_result[9];
+        snprintf(c_result, 9, "%d", result);
+
 	// populate initial directory listing
-	if(BrowseTree() <= 0)
+	if(result <= 0)
 	{
 		int choice = WindowPrompt(
 		"Error",
-		"Unable to display files on selected load device.",
+		c_result,
 		"Retry",
 		"Check Settings");
 
@@ -327,7 +332,18 @@ static int MenuBrowseDevice()
 			return MENU_BROWSE_DEVICE;
 		else
 			return MENU_SETTINGS;
-	}
+	} else {
+		int choice = WindowPrompt(
+		"Info",
+		c_result,
+		"Don't Click",
+		"Continue");
+
+		if(choice)
+			return MENU_BROWSE_DEVICE;
+		else
+			return MENU_SETTINGS;
+        }
 
 	int menu = MENU_NONE;
 

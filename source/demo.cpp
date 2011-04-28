@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <wiiuse/wpad.h>
 #include <fat.h>
+#include <network.h>
 
 #include "FreeTypeGX.h"
 #include "video.h"
@@ -46,12 +47,23 @@ DefaultSettings()
 	Settings.AutoSave = 1;
 }
 
+static
+void InitNetwork()
+{
+    /* Bring up network interface. */
+    char localip[16] = {0};
+    char gateway[16] = {0};
+    char netmask[16] = {0};
+    if_config(localip, netmask, gateway, TRUE);
+}
+
 int
 main(int argc, char *argv[])
 {
 	InitVideo(); // Initialize video
 	SetupPads(); // Initialize input
 	InitAudio(); // Initialize audio
+        InitNetwork(); // Initialize network
 	fatInitDefault(); // Initialize file system
 	InitFreeType((u8*)font_ttf, font_ttf_size); // Initialize font system
 	InitGUIThreads(); // Initialize GUI
