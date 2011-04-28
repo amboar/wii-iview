@@ -338,11 +338,6 @@ static int MenuBrowseDevice()
 		c_result,
 		"Don't Click",
 		"Continue");
-
-		if(choice)
-			return MENU_BROWSE_DEVICE;
-		else
-			return MENU_SETTINGS;
         }
 
 	int menu = MENU_NONE;

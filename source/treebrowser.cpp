@@ -297,6 +297,7 @@ series_buf_cleanup:
         iv_destroy_series_items(items, items_len);
         */
     }
+    treeBrowser.numEntries = index_len;
     treeBrowserList = rootNode.children;
 index_buf_cleanup:
     iv_destroy_xml_buffer(index_buf);
@@ -304,9 +305,5 @@ config_cleanup:
     iv_destroy_config(iview_config);
 config_buf_cleanup:
     iv_destroy_xml_buffer(config_buf);
-    //sprintf(treeBrowser.dir, "/");
-    //sprintf(rootdir, "sd:/");
-    //_ParseDirectory(); // Parse root directory
-    //return treeBrowser.numEntries;
     return return_value;
 }
