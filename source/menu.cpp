@@ -392,7 +392,7 @@ static int MenuBrowseDevice()
 				// check corresponding browser entry
 				if(0 < treeBrowserList[treeBrowser.selIndex].numChildren)
 				{
-					if(BrowserChangeFolder())
+					if(BrowserChangeNode())
 					{
 						fileBrowser.ResetState();
 						fileBrowser.nodeList[0]->SetState(STATE_SELECTED);

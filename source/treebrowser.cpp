@@ -95,7 +95,11 @@ int UpdateNodeName()
 		}
 	}
         */
-    return 0;
+    treeBrowser.numEntries = treeBrowserList[treeBrowser.selIndex].numChildren;
+    treeBrowserList = treeBrowserList[treeBrowser.selIndex].children;
+    treeBrowser.selIndex = 0;
+    treeBrowser.pageIndex = 0;
+    return 1;
 }
 
 /****************************************************************************
@@ -216,8 +220,7 @@ int BrowserChangeNode()
 
 	//_ParseDirectory();
 
-	//return treeBrowser.numEntries;
-	return 0;
+	return treeBrowser.numEntries;
 }
 
 /****************************************************************************
@@ -270,32 +273,48 @@ int BrowseTree()
         goto index_buf_cleanup;
     }
 
+    // Artificial limit - hack for testing
+    index_len = 5;
+
     // populate tree root node with the series index elements
     rootNode.children = (TREEBROWSERENTRY *)calloc(index_len, sizeof(rootNode));
     rootNode.numChildren = index_len;
     return_value = index_len;
     for(int i=0; i<index_len; i++) {
+        // Initialise the entry
         TREEBROWSERENTRY *c = &rootNode.children[i];
         c->parent = &rootNode;
         c->children = NULL;
         c->numChildren = 0;
         snprintf(c->name, MAXJOLIET, "%s", index[i].title);
         snprintf(c->displayname, MAXDISPLAY, "%s", index[i].title);
-        /*
+
+        // Populate the child nodes with episodes
         const ssize_t items_buf_len =
-            iv_get_series_items(iview_config, index[i], &items_buf);
+            iv_get_series_items(iview_config, &index[i], &items_buf);
         if(0 > items_buf_len) {
             continue;
         }
         struct iv_item *items;
         const int items_len =
-            iv_parse_series_items(series_buf, series_buf_len, &items);
+            iv_parse_series_items(items_buf, items_buf_len, &items);
         if(0 > items_len) {
             goto series_buf_cleanup;
         }
+        c->children = (TREEBROWSERENTRY *)calloc(items_len, sizeof(TREEBROWSERENTRY));
+        c->numChildren = items_len;
+        for(int j=0; j<items_len; j++) {
+            TREEBROWSERENTRY *c2 = &c->children[j];
+            c2->parent = c;
+            c2->children = NULL;
+            c2->numChildren = 0;
+            snprintf(c2->name, MAXJOLIET, "%s", items[j].title);
+            snprintf(c2->displayname, MAXDISPLAY, "%s", items[j].title);
+        }
 series_buf_cleanup:
+        iv_destroy_xml_buffer(items_buf);
+series_cleanup:
         iv_destroy_series_items(items, items_len);
-        */
     }
     treeBrowser.numEntries = index_len;
     treeBrowserList = rootNode.children;
