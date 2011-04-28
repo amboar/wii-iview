@@ -95,8 +95,22 @@ int UpdateNodeName()
 		}
 	}
         */
-    treeBrowser.numEntries = treeBrowserList[treeBrowser.selIndex].numChildren;
-    treeBrowserList = treeBrowserList[treeBrowser.selIndex].children;
+    TREEBROWSERENTRY *tbl = &treeBrowserList[treeBrowser.selIndex];
+    // Did we try to go up a menu?
+    if(0 == treeBrowser.selIndex) {
+        // If we're at the series list there's nothing to do
+        if(&rootNode == tbl->parent) {
+            return 0;
+        }
+        // Otherwise jump up a level
+        if(NULL != tbl->parent->parent) {
+            treeBrowser.numEntries = tbl->parent->parent->numChildren;
+            treeBrowserList = tbl->parent->parent->children;
+        }
+    } else {
+        treeBrowser.numEntries = tbl->numChildren;
+        treeBrowserList = tbl->children;
+    }
     treeBrowser.selIndex = 0;
     treeBrowser.pageIndex = 0;
     return 1;
@@ -277,17 +291,22 @@ int BrowseTree()
     index_len = 5;
 
     // populate tree root node with the series index elements
-    rootNode.children = (TREEBROWSERENTRY *)calloc(index_len, sizeof(rootNode));
-    rootNode.numChildren = index_len;
-    return_value = index_len;
-    for(int i=0; i<index_len; i++) {
+    rootNode.children = (TREEBROWSERENTRY *)calloc(index_len+1, sizeof(rootNode));
+    rootNode.numChildren = index_len+1;
+    return_value = index_len+1;
+    rootNode.children[0].parent = NULL;
+    rootNode.children[0].children = NULL;
+    rootNode.children[0].numChildren = 0;
+    snprintf(rootNode.children[0].name, MAXJOLIET, "%s", "Up");
+    snprintf(rootNode.children[0].displayname, MAXDISPLAY, "%s", "Up");
+    for(int i=1; i<index_len+1; i++) {
         // Initialise the entry
         TREEBROWSERENTRY *c = &rootNode.children[i];
         c->parent = &rootNode;
         c->children = NULL;
         c->numChildren = 0;
-        snprintf(c->name, MAXJOLIET, "%s", index[i].title);
-        snprintf(c->displayname, MAXDISPLAY, "%s", index[i].title);
+        snprintf(c->name, MAXJOLIET, "%s", index[i-1].title);
+        snprintf(c->displayname, MAXDISPLAY, "%s", index[i-1].title);
 
         // Populate the child nodes with episodes
         const ssize_t items_buf_len =
@@ -301,22 +320,27 @@ int BrowseTree()
         if(0 > items_len) {
             goto series_buf_cleanup;
         }
-        c->children = (TREEBROWSERENTRY *)calloc(items_len, sizeof(TREEBROWSERENTRY));
-        c->numChildren = items_len;
-        for(int j=0; j<items_len; j++) {
+        c->children = (TREEBROWSERENTRY *)calloc(items_len+1, sizeof(TREEBROWSERENTRY));
+        c->numChildren = items_len+1;
+        c->children[0].parent = c;
+        c->children[0].children = NULL;
+        c->children[0].numChildren = 0;
+        snprintf(c->children[0].name, MAXJOLIET, "%s", "Up");
+        snprintf(c->children[0].displayname, MAXDISPLAY, "%s", "Up");
+        for(int j=1; j<items_len+1; j++) {
             TREEBROWSERENTRY *c2 = &c->children[j];
             c2->parent = c;
             c2->children = NULL;
             c2->numChildren = 0;
-            snprintf(c2->name, MAXJOLIET, "%s", items[j].title);
-            snprintf(c2->displayname, MAXDISPLAY, "%s", items[j].title);
+            snprintf(c2->name, MAXJOLIET, "%s", items[j-1].title);
+            snprintf(c2->displayname, MAXDISPLAY, "%s", items[j-1].title);
         }
 series_buf_cleanup:
         iv_destroy_xml_buffer(items_buf);
 series_cleanup:
         iv_destroy_series_items(items, items_len);
     }
-    treeBrowser.numEntries = index_len;
+    treeBrowser.numEntries = index_len+1;
     treeBrowserList = rootNode.children;
 index_buf_cleanup:
     iv_destroy_xml_buffer(index_buf);
