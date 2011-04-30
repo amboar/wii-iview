@@ -19,10 +19,10 @@
 #include "treebrowser.h"
 #include "menu.h"
 
-TREEBROWSERINFO treeBrowser;
-TREEBROWSERENTRY * treeBrowserList = NULL; // list of immediate children in treeBrowser
+TreeBrowserInfo treeBrowser;
+TreeBrowserEntry * treeBrowserList = NULL; // list of immediate children in treeBrowser
 
-TREEBROWSERENTRY rootNode;
+TreeBrowserEntry rootNode;
 
 /****************************************************************************
  * ResetTreeBrowser()
@@ -41,8 +41,8 @@ void ResetTreeBrowser()
 		treeBrowserList = NULL;
 	}
 	// set aside space for 1 entry
-	treeBrowserList = (TREEBROWSERENTRY *)malloc(sizeof(TREEBROWSERENTRY));
-	memset(treeBrowserList, 0, sizeof(TREEBROWSERENTRY));
+	treeBrowserList = (TreeBrowserEntry *)malloc(sizeof(TreeBrowserEntry));
+	memset(treeBrowserList, 0, sizeof(TreeBrowserEntry));
 }
 
 /****************************************************************************
@@ -51,7 +51,7 @@ void ResetTreeBrowser()
  ***************************************************************************/
 static int UpdateNodeName()
 {
-    TREEBROWSERENTRY *tbl = &treeBrowserList[treeBrowser.selIndex];
+    TreeBrowserEntry *tbl = &treeBrowserList[treeBrowser.selIndex];
     // Did we try to go up a menu?
     if(0 == treeBrowser.selIndex) {
         // If we're at the series list there's nothing to do
@@ -85,19 +85,19 @@ static int
 NodeSortCallback(const void *f1, const void *f2)
 {
 	/* Special case for implicit directories */
-	if(((TREEBROWSERENTRY *)f1)->name[0] == '.' || ((TREEBROWSERENTRY *)f2)->name[0] == '.')
+	if(((TreeBrowserEntry *)f1)->name[0] == '.' || ((TreeBrowserEntry *)f2)->name[0] == '.')
 	{
-		if(strcmp(((TREEBROWSERENTRY *)f1)->name, ".") == 0) { return -1; }
-		if(strcmp(((TREEBROWSERENTRY *)f2)->name, ".") == 0) { return 1; }
-		if(strcmp(((TREEBROWSERENTRY *)f1)->name, "..") == 0) { return -1; }
-		if(strcmp(((TREEBROWSERENTRY *)f2)->name, "..") == 0) { return 1; }
+		if(strcmp(((TreeBrowserEntry *)f1)->name, ".") == 0) { return -1; }
+		if(strcmp(((TreeBrowserEntry *)f2)->name, ".") == 0) { return 1; }
+		if(strcmp(((TreeBrowserEntry *)f1)->name, "..") == 0) { return -1; }
+		if(strcmp(((TreeBrowserEntry *)f2)->name, "..") == 0) { return 1; }
 	}
 
 	/* If one is a file and one is a directory the directory is first. */
-	if(0 == ((TREEBROWSERENTRY *)f1)->numChildren && (0 < ((TREEBROWSERENTRY *)f2)->numChildren)) return -1;
-	if((0 < ((TREEBROWSERENTRY *)f1)->numChildren) && 0 == ((TREEBROWSERENTRY *)f2)->numChildren) return 1;
+	if(0 == ((TreeBrowserEntry *)f1)->numChildren && (0 < ((TreeBrowserEntry *)f2)->numChildren)) return -1;
+	if((0 < ((TreeBrowserEntry *)f1)->numChildren) && 0 == ((TreeBrowserEntry *)f2)->numChildren) return 1;
 
-	return stricmp(((TREEBROWSERENTRY *)f1)->name, ((TREEBROWSERENTRY *)f2)->name);
+	return stricmp(((TreeBrowserEntry *)f1)->name, ((TreeBrowserEntry *)f2)->name);
 }
 
 /****************************************************************************
@@ -126,7 +126,7 @@ int BrowseTree()
     struct iv_series *index;
     int index_len;
 
-    TREEBROWSERENTRY *r_children;
+    TreeBrowserEntry *r_children;
 
     // root node value initialisation
     rootNode.parent = NULL;
@@ -149,7 +149,7 @@ int BrowseTree()
     index_len = 5;
 
     // populate tree root node with the series index elements
-    rootNode.children = (TREEBROWSERENTRY *)calloc(index_len+1, sizeof(rootNode));
+    rootNode.children = (TreeBrowserEntry *)calloc(index_len+1, sizeof(rootNode));
     rootNode.numChildren = index_len+1;
     return_value = index_len+1;
     rootNode.children[0].parent = NULL;
@@ -160,7 +160,7 @@ int BrowseTree()
     r_children = &rootNode.children[1];
     for(int i=0; i<index_len; i++) {
         // Initialise the entry
-        TREEBROWSERENTRY *c = &r_children[i];
+        TreeBrowserEntry *c = &r_children[i];
         c->parent = &rootNode;
         c->children = NULL;
         c->numChildren = 0;
@@ -174,16 +174,16 @@ int BrowseTree()
         if(0 > items_len) {
             continue;
         }
-        c->children = (TREEBROWSERENTRY *)calloc(items_len+1, sizeof(TREEBROWSERENTRY));
+        c->children = (TreeBrowserEntry *)calloc(items_len+1, sizeof(TreeBrowserEntry));
         c->numChildren = items_len+1;
         c->children[0].parent = c;
         c->children[0].children = NULL;
         c->children[0].numChildren = 0;
         snprintf(c->children[0].name, MAXJOLIET, "%s", "Up");
         snprintf(c->children[0].displayname, MAXDISPLAY, "%s", "Up");
-        TREEBROWSERENTRY *c_children = &c->children[1];
+        TreeBrowserEntry *c_children = &c->children[1];
         for(int j=0; j<items_len; j++) {
-            TREEBROWSERENTRY *c2 = &c_children[j];
+            TreeBrowserEntry *c2 = &c_children[j];
             c2->parent = c;
             c2->children = NULL;
             c2->numChildren = 0;
