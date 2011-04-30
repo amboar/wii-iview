@@ -134,20 +134,32 @@ int BrowseTree(TreeBrowserInfo *info)
         snprintf(c->name, MAXJOLIET, "%s", index[i].title);
         snprintf(c->displayname, MAXDISPLAY, "%s", index[i].title);
 
-        // Populate the child nodes with episodes
+        // Populate children with mandatory "Up" entry
+        c->children = (TreeBrowserNode *)calloc(1, sizeof(TreeBrowserNode));
+        c->numChildren = 1;
+        c->children[0].parent = c;
+        c->children[0].children = NULL;
+        c->children[0].numChildren = 0;
+        snprintf(c->children[0].name, MAXJOLIET, "%s", "Up");
+        snprintf(c->children[0].displayname, MAXDISPLAY, "%s", "Up");
+
+        // Fetch episodes
         struct iv_item *items;
         const int items_len =
             iv_easy_series_items(iview_config, &index[i], &items);
         if(0 > items_len) {
             continue;
         }
-        c->children = (TreeBrowserNode *)calloc(items_len+1, sizeof(TreeBrowserNode));
+
+        // Make space in ->children for the children
+        TreeBrowserNode *tmpChildren =
+            (TreeBrowserNode *)realloc(c->children, (items_len+1)*sizeof(TreeBrowserNode));
+        if(NULL == tmpChildren) {
+            iv_destroy_series_items(items, items_len);
+            break;
+        }
+        c->children = tmpChildren;
         c->numChildren = items_len+1;
-        c->children[0].parent = c;
-        c->children[0].children = NULL;
-        c->children[0].numChildren = 0;
-        snprintf(c->children[0].name, MAXJOLIET, "%s", "Up");
-        snprintf(c->children[0].displayname, MAXDISPLAY, "%s", "Up");
         TreeBrowserNode *c_children = &c->children[1];
         for(int j=0; j<items_len; j++) {
             TreeBrowserNode *c2 = &c_children[j];
