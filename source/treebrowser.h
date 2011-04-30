@@ -18,9 +18,10 @@
 
 typedef struct _TreeBrowserEntry
 {
+    int (*selectedEvent)(struct _TreeBrowserEntry *node);
     struct _TreeBrowserEntry *parent;
     struct _TreeBrowserEntry *children;
-    char numChildren;
+    int numChildren;
     char name[MAXJOLIET + 1]; // full filename
     char displayname[MAXDISPLAY + 1]; // name for browser display
 } TreeBrowserNode;

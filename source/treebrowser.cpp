@@ -56,6 +56,11 @@ void BrowserChangeNode(TreeBrowserInfo *info)
     if(NULL == chosenNode) {
         return;
     }
+    if(NULL != chosenNode->selectedEvent) {
+        if(chosenNode->selectedEvent(chosenNode)) {
+            return;
+        }
+    }
     // Did we try to go up a menu?
     if(0 == info->selIndex) {
         // If we're at the series list there's nothing to do
@@ -70,6 +75,23 @@ void BrowserChangeNode(TreeBrowserInfo *info)
     info->selIndex = 0;
     info->pageIndex = 0;
     return;
+}
+
+static void
+populateNode(
+        TreeBrowserNode *node,
+        int (*selectedEvent)(TreeBrowserNode *node),
+        TreeBrowserNode *parent,
+        TreeBrowserNode *children,
+        int numChildren,
+        char *name)
+{
+    node->selectedEvent = selectedEvent;
+    node->parent = parent;
+    node->children = children;
+    node->numChildren = numChildren;
+    snprintf(node->name, MAXJOLIET, "%s", name);
+    snprintf(node->displayname, MAXDISPLAY, "%s", name);
 }
 
 /****************************************************************************
@@ -96,11 +118,7 @@ int BrowseTree(TreeBrowserInfo *info)
 
     // root node value initialisation
     info->currentNode = rootNode;
-    info->currentNode->parent = NULL;
-    info->currentNode->children = NULL;
-    info->currentNode->numChildren = 0;
-    snprintf(info->currentNode->name, MAXJOLIET, "%s", "ROOT");
-    snprintf(info->currentNode->name, MAXDISPLAY, "%s", "ROOT");
+    populateNode(info->currentNode, NULL, NULL, NULL, 0, (char *)"ROOT");
 
     // start querying ABC iview servers
     if(0 > iv_easy_config(&iview_config)) {
@@ -114,34 +132,22 @@ int BrowseTree(TreeBrowserInfo *info)
 
     // Artificial limit - hack for testing
     index_len = 5;
+    return_value = index_len+1;
 
     // populate tree root node with the series index elements
     info->currentNode->children = (TreeBrowserNode *)calloc(index_len+1, sizeof(TreeBrowserNode));
     info->currentNode->numChildren = index_len+1;
-    return_value = index_len+1;
-    info->currentNode->children[0].parent = NULL;
-    info->currentNode->children[0].children = NULL;
-    info->currentNode->children[0].numChildren = 0;
-    snprintf(info->currentNode->children[0].name, MAXJOLIET, "%s", "Up");
-    snprintf(info->currentNode->children[0].displayname, MAXDISPLAY, "%s", "Up");
+    populateNode(&info->currentNode->children[0], NULL, NULL, NULL, 0, (char *)"Up");
     r_children = &info->currentNode->children[1];
     for(int i=0; i<index_len; i++) {
         // Initialise the entry
         TreeBrowserNode *c = &r_children[i];
-        c->parent = rootNode;
-        c->children = NULL;
-        c->numChildren = 0;
-        snprintf(c->name, MAXJOLIET, "%s", index[i].title);
-        snprintf(c->displayname, MAXDISPLAY, "%s", index[i].title);
+        populateNode(c, NULL, rootNode, NULL, 0, (char *)index[i].title);
 
         // Populate children with mandatory "Up" entry
         c->children = (TreeBrowserNode *)calloc(1, sizeof(TreeBrowserNode));
         c->numChildren = 1;
-        c->children[0].parent = c;
-        c->children[0].children = NULL;
-        c->children[0].numChildren = 0;
-        snprintf(c->children[0].name, MAXJOLIET, "%s", "Up");
-        snprintf(c->children[0].displayname, MAXDISPLAY, "%s", "Up");
+        populateNode(&c->children[0], NULL, c, NULL, 0, (char *)"Up");
 
         // Fetch episodes
         struct iv_item *items;
@@ -163,11 +169,7 @@ int BrowseTree(TreeBrowserInfo *info)
         TreeBrowserNode *c_children = &c->children[1];
         for(int j=0; j<items_len; j++) {
             TreeBrowserNode *c2 = &c_children[j];
-            c2->parent = c;
-            c2->children = NULL;
-            c2->numChildren = 0;
-            snprintf(c2->name, MAXJOLIET, "%s", items[j].title);
-            snprintf(c2->displayname, MAXDISPLAY, "%s", items[j].title);
+            populateNode(c2, NULL, c, NULL, 0, (char *)items[j].title);
         }
         iv_destroy_series_items(items, items_len);
     }
