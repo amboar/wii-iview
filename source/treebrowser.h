@@ -34,10 +34,10 @@ typedef struct
 } TreeBrowserInfo;
 
 extern TreeBrowserInfo treeBrowser;
-extern TreeBrowserNode rootNode;
+extern TreeBrowserNode *rootNode;
 
 void ResetTreeBrowser(TreeBrowserInfo *info);
-int BrowserChangeNode(TreeBrowserInfo *info);
-int BrowseTree();
+void BrowserChangeNode(TreeBrowserInfo *info);
+int BrowseTree(TreeBrowserInfo *info);
 
 #endif

@@ -313,8 +313,7 @@ static int MenuBrowseDevice()
 
 	ShutoffRumble();
 
-
-        const int result = BrowseTree();
+        const int result = BrowseTree(&treeBrowser);
         char c_result[9];
         snprintf(c_result, 9, "%d", result);
 
@@ -391,17 +390,10 @@ static int MenuBrowseDevice()
 				// check corresponding browser entry
 				if(0 == treeBrowser.selIndex || 0 < treeBrowser.currentNode[treeBrowser.selIndex].numChildren)
 				{
-					if(BrowserChangeNode(&treeBrowser))
-					{
-						fileBrowser.ResetState();
-						fileBrowser.nodeList[0]->SetState(STATE_SELECTED);
-						fileBrowser.TriggerUpdate();
-					}
-					else
-					{
-						menu = MENU_BROWSE_DEVICE;
-						break;
-					}
+                                        BrowserChangeNode(&treeBrowser);
+                                        fileBrowser.ResetState();
+                                        fileBrowser.nodeList[0]->SetState(STATE_SELECTED);
+                                        fileBrowser.TriggerUpdate();
 				}
 				else
 				{
@@ -674,6 +666,9 @@ void MainMenu(int menu)
 	trigA.SetSimpleTrigger(-1, WPAD_BUTTON_A | WPAD_CLASSIC_BUTTON_A, PAD_BUTTON_A);
 
 	ResumeGui();
+
+        // Make sure tree browser is initialised
+        ResetTreeBrowser(&treeBrowser);
 
 	while(currentMenu != MENU_EXIT)
 	{

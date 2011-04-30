@@ -22,7 +22,7 @@
 TreeBrowserInfo treeBrowser;
 TreeBrowserNode * treeBrowserList = NULL; // list of immediate children in treeBrowser
 
-TreeBrowserNode rootNode;
+TreeBrowserNode *rootNode;
 
 /****************************************************************************
  * ResetTreeBrowser()
@@ -42,7 +42,8 @@ void ResetTreeBrowser(TreeBrowserInfo *info)
 	}
 
 	// set aside space for 1 entry
-	info->currentNode = (TreeBrowserNode *)calloc(1, sizeof(TreeBrowserNode));
+        rootNode = (TreeBrowserNode *)calloc(1, sizeof(TreeBrowserNode));
+	info->currentNode = rootNode;
 }
 
 /****************************************************************************
@@ -58,7 +59,7 @@ static void UpdateNodeEntries(TreeBrowserInfo *info)
     // Did we try to go up a menu?
     if(0 == info->selIndex) {
         // If we're at the series list there's nothing to do
-        if(&rootNode == chosenNode->parent) {
+        if(rootNode == chosenNode->parent) {
             return;
         }
         // Otherwise jump up a level
@@ -79,17 +80,17 @@ static void UpdateNodeEntries(TreeBrowserInfo *info)
  *
  * Update current directory and set new entry list if directory has changed
  ***************************************************************************/
-int BrowserChangeNode(TreeBrowserInfo *info)
+void BrowserChangeNode(TreeBrowserInfo *info)
 {
     UpdateNodeEntries(info);
-    return info->numEntries;
+    return;
 }
 
 /****************************************************************************
  * BrowseTree
  * Displays a list of files on the selected device
  ***************************************************************************/
-int BrowseTree()
+int BrowseTree(TreeBrowserInfo *info)
 {
     int return_value = 0;
 
@@ -101,22 +102,27 @@ int BrowseTree()
     struct iv_series *index;
     int index_len;
 
+    if(NULL == info->currentNode) {
+        return -1;
+    }
+
     TreeBrowserNode *r_children;
 
     // root node value initialisation
-    rootNode.parent = NULL;
-    rootNode.children = NULL;
-    rootNode.numChildren = 0;
-    snprintf(rootNode.name, MAXJOLIET, "%s", "ROOT");
-    snprintf(rootNode.name, MAXDISPLAY, "%s", "ROOT");
+    info->currentNode = rootNode;
+    info->currentNode->parent = NULL;
+    info->currentNode->children = NULL;
+    info->currentNode->numChildren = 0;
+    snprintf(info->currentNode->name, MAXJOLIET, "%s", "ROOT");
+    snprintf(info->currentNode->name, MAXDISPLAY, "%s", "ROOT");
 
     // start querying ABC iview servers
     if(0 > iv_easy_config(&iview_config)) {
-        return_value = -1;
+        return_value = -2;
     }
     index_len = iv_easy_index(iview_config, &index);
     if(0 > index_len) {
-        return_value = -2;
+        return_value = -3;
         goto config_cleanup;
     }
 
@@ -124,19 +130,19 @@ int BrowseTree()
     index_len = 5;
 
     // populate tree root node with the series index elements
-    rootNode.children = (TreeBrowserNode *)calloc(index_len+1, sizeof(rootNode));
-    rootNode.numChildren = index_len+1;
+    info->currentNode->children = (TreeBrowserNode *)calloc(index_len+1, sizeof(TreeBrowserNode));
+    info->currentNode->numChildren = index_len+1;
     return_value = index_len+1;
-    rootNode.children[0].parent = NULL;
-    rootNode.children[0].children = NULL;
-    rootNode.children[0].numChildren = 0;
-    snprintf(rootNode.children[0].name, MAXJOLIET, "%s", "Up");
-    snprintf(rootNode.children[0].displayname, MAXDISPLAY, "%s", "Up");
-    r_children = &rootNode.children[1];
+    info->currentNode->children[0].parent = NULL;
+    info->currentNode->children[0].children = NULL;
+    info->currentNode->children[0].numChildren = 0;
+    snprintf(info->currentNode->children[0].name, MAXJOLIET, "%s", "Up");
+    snprintf(info->currentNode->children[0].displayname, MAXDISPLAY, "%s", "Up");
+    r_children = &info->currentNode->children[1];
     for(int i=0; i<index_len; i++) {
         // Initialise the entry
         TreeBrowserNode *c = &r_children[i];
-        c->parent = &rootNode;
+        c->parent = rootNode;
         c->children = NULL;
         c->numChildren = 0;
         snprintf(c->name, MAXJOLIET, "%s", index[i].title);
@@ -167,8 +173,8 @@ int BrowseTree()
         }
         iv_destroy_series_items(items, items_len);
     }
-    treeBrowser.numEntries = index_len+1;
-    treeBrowser.currentNode = rootNode.children;
+    info->numEntries = index_len+1;
+    info->currentNode = info->currentNode->children;
     // Cleanup
     iv_destroy_index(index, index_len);
 config_cleanup:
