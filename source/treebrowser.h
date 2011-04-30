@@ -19,6 +19,7 @@
 typedef struct _TreeBrowserEntry
 {
     int (*selectedEvent)(struct _TreeBrowserEntry *node);
+    void *data; // User data for use by callbacks
     struct _TreeBrowserEntry *parent;
     struct _TreeBrowserEntry *children;
     int numChildren;

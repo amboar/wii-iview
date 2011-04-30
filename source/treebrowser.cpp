@@ -81,12 +81,14 @@ static void
 populateNode(
         TreeBrowserNode *node,
         int (*selectedEvent)(TreeBrowserNode *node),
+        void *data,
         TreeBrowserNode *parent,
         TreeBrowserNode *children,
         int numChildren,
         char *name)
 {
     node->selectedEvent = selectedEvent;
+    node->data = data;
     node->parent = parent;
     node->children = children;
     node->numChildren = numChildren;
@@ -118,7 +120,7 @@ int BrowseTree(TreeBrowserInfo *info)
 
     // root node value initialisation
     info->currentNode = rootNode;
-    populateNode(info->currentNode, NULL, NULL, NULL, 0, (char *)"ROOT");
+    populateNode(info->currentNode, NULL, NULL, NULL, NULL, 0, (char *)"ROOT");
 
     // start querying ABC iview servers
     if(0 > iv_easy_config(&iview_config)) {
@@ -137,17 +139,17 @@ int BrowseTree(TreeBrowserInfo *info)
     // populate tree root node with the series index elements
     info->currentNode->children = (TreeBrowserNode *)calloc(index_len+1, sizeof(TreeBrowserNode));
     info->currentNode->numChildren = index_len+1;
-    populateNode(&info->currentNode->children[0], NULL, NULL, NULL, 0, (char *)"Up");
+    populateNode(&info->currentNode->children[0], NULL, NULL, NULL, NULL, 0, (char *)"Up");
     r_children = &info->currentNode->children[1];
     for(int i=0; i<index_len; i++) {
         // Initialise the entry
         TreeBrowserNode *c = &r_children[i];
-        populateNode(c, NULL, rootNode, NULL, 0, (char *)index[i].title);
+        populateNode(c, NULL, &index[i], rootNode, NULL, 0, (char *)index[i].title);
 
         // Populate children with mandatory "Up" entry
         c->children = (TreeBrowserNode *)calloc(1, sizeof(TreeBrowserNode));
         c->numChildren = 1;
-        populateNode(&c->children[0], NULL, c, NULL, 0, (char *)"Up");
+        populateNode(&c->children[0], NULL, NULL, c, NULL, 0, (char *)"Up");
 
         // Fetch episodes
         struct iv_item *items;
@@ -169,7 +171,7 @@ int BrowseTree(TreeBrowserInfo *info)
         TreeBrowserNode *c_children = &c->children[1];
         for(int j=0; j<items_len; j++) {
             TreeBrowserNode *c2 = &c_children[j];
-            populateNode(c2, NULL, c, NULL, 0, (char *)items[j].title);
+            populateNode(c2, NULL, &items[j], c, NULL, 0, (char *)items[j].title);
         }
         iv_destroy_series_items(items, items_len);
     }
