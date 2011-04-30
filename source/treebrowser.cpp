@@ -247,18 +247,13 @@ int BrowseTree()
 
     // libiview variable initialisation - can't declare these inline as g++
     // barfs about jumping over declarations.
-    char *config_buf;
-    ssize_t config_buf_len;
 
     struct iv_config *iview_config;
-
-    char *index_buf;
-    ssize_t index_buf_len;
 
     struct iv_series *index;
     int index_len;
 
-    char *items_buf;
+    TREEBROWSERENTRY *r_children;
 
     // root node value initialisation
     rootNode.parent = NULL;
@@ -268,23 +263,13 @@ int BrowseTree()
     snprintf(rootNode.name, MAXDISPLAY, "%s", "ROOT");
 
     // start querying ABC iview servers
-    config_buf_len = iv_get_xml_buffer(IV_CONFIG_URI, &config_buf);
-    if(0 > config_buf_len) {
-        return -1;
+    if(0 > iv_easy_config(&iview_config)) {
+        return_value = -1;
     }
-    if(0 > iv_get_config(config_buf, config_buf_len, &iview_config)) {
+    index_len = iv_easy_index(iview_config, &index);
+    if(0 > index_len) {
         return_value = -2;
         goto config_cleanup;
-    }
-    index_buf_len = iv_get_index(iview_config, &index_buf);
-    if(0 > index_buf_len) {
-        return_value = -3;
-        goto config_cleanup;
-    }
-    index_len = iv_parse_index(index_buf, &index);
-    if(0 > index_len) {
-        return_value = -4;
-        goto index_buf_cleanup;
     }
 
     // Artificial limit - hack for testing
@@ -299,26 +284,22 @@ int BrowseTree()
     rootNode.children[0].numChildren = 0;
     snprintf(rootNode.children[0].name, MAXJOLIET, "%s", "Up");
     snprintf(rootNode.children[0].displayname, MAXDISPLAY, "%s", "Up");
-    for(int i=1; i<index_len+1; i++) {
+    r_children = &rootNode.children[1];
+    for(int i=0; i<index_len; i++) {
         // Initialise the entry
-        TREEBROWSERENTRY *c = &rootNode.children[i];
+        TREEBROWSERENTRY *c = &r_children[i];
         c->parent = &rootNode;
         c->children = NULL;
         c->numChildren = 0;
-        snprintf(c->name, MAXJOLIET, "%s", index[i-1].title);
-        snprintf(c->displayname, MAXDISPLAY, "%s", index[i-1].title);
+        snprintf(c->name, MAXJOLIET, "%s", index[i].title);
+        snprintf(c->displayname, MAXDISPLAY, "%s", index[i].title);
 
         // Populate the child nodes with episodes
-        const ssize_t items_buf_len =
-            iv_get_series_items(iview_config, &index[i], &items_buf);
-        if(0 > items_buf_len) {
-            continue;
-        }
         struct iv_item *items;
         const int items_len =
-            iv_parse_series_items(items_buf, items_buf_len, &items);
+            iv_easy_series_items(iview_config, &index[i], &items);
         if(0 > items_len) {
-            goto series_buf_cleanup;
+            continue;
         }
         c->children = (TREEBROWSERENTRY *)calloc(items_len+1, sizeof(TREEBROWSERENTRY));
         c->numChildren = items_len+1;
@@ -327,26 +308,22 @@ int BrowseTree()
         c->children[0].numChildren = 0;
         snprintf(c->children[0].name, MAXJOLIET, "%s", "Up");
         snprintf(c->children[0].displayname, MAXDISPLAY, "%s", "Up");
-        for(int j=1; j<items_len+1; j++) {
-            TREEBROWSERENTRY *c2 = &c->children[j];
+        TREEBROWSERENTRY *c_children = &c->children[1];
+        for(int j=0; j<items_len; j++) {
+            TREEBROWSERENTRY *c2 = &c_children[j];
             c2->parent = c;
             c2->children = NULL;
             c2->numChildren = 0;
-            snprintf(c2->name, MAXJOLIET, "%s", items[j-1].title);
-            snprintf(c2->displayname, MAXDISPLAY, "%s", items[j-1].title);
+            snprintf(c2->name, MAXJOLIET, "%s", items[j].title);
+            snprintf(c2->displayname, MAXDISPLAY, "%s", items[j].title);
         }
-series_buf_cleanup:
-        iv_destroy_xml_buffer(items_buf);
-series_cleanup:
         iv_destroy_series_items(items, items_len);
     }
     treeBrowser.numEntries = index_len+1;
     treeBrowserList = rootNode.children;
-index_buf_cleanup:
-    iv_destroy_xml_buffer(index_buf);
+    // Cleanup
+    iv_destroy_index(index, index_len);
 config_cleanup:
     iv_destroy_config(iview_config);
-config_buf_cleanup:
-    iv_destroy_xml_buffer(config_buf);
     return return_value;
 }
