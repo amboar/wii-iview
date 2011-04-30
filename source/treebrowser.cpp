@@ -20,9 +20,9 @@
 #include "menu.h"
 
 TreeBrowserInfo treeBrowser;
-TreeBrowserEntry * treeBrowserList = NULL; // list of immediate children in treeBrowser
+TreeBrowserNode * treeBrowserList = NULL; // list of immediate children in treeBrowser
 
-TreeBrowserEntry rootNode;
+TreeBrowserNode rootNode;
 
 /****************************************************************************
  * ResetTreeBrowser()
@@ -41,18 +41,18 @@ void ResetTreeBrowser()
 		treeBrowserList = NULL;
 	}
 	// set aside space for 1 entry
-	treeBrowserList = (TreeBrowserEntry *)malloc(sizeof(TreeBrowserEntry));
-	memset(treeBrowserList, 0, sizeof(TreeBrowserEntry));
+	treeBrowserList = (TreeBrowserNode *)malloc(sizeof(TreeBrowserNode));
+	memset(treeBrowserList, 0, sizeof(TreeBrowserNode));
 }
 
 /****************************************************************************
  * UpdateNodeEntries()
  * Update curent directory name for file treeBrowser
  ***************************************************************************/
-static TreeBrowserEntry *UpdateNodeEntries(TreeBrowserEntry *oldEntry,
-        TreeBrowserEntry *chosenEntry, TreeBrowserInfo *info)
+static TreeBrowserNode *UpdateNodeEntries(TreeBrowserNode *oldEntry,
+        TreeBrowserNode *chosenEntry, TreeBrowserInfo *info)
 {
-    TreeBrowserEntry *list = NULL;
+    TreeBrowserNode *list = NULL;
     if(NULL == chosenEntry || NULL == chosenEntry->parent) {
         return oldEntry;
     }
@@ -104,7 +104,7 @@ int BrowseTree()
     struct iv_series *index;
     int index_len;
 
-    TreeBrowserEntry *r_children;
+    TreeBrowserNode *r_children;
 
     // root node value initialisation
     rootNode.parent = NULL;
@@ -127,7 +127,7 @@ int BrowseTree()
     index_len = 5;
 
     // populate tree root node with the series index elements
-    rootNode.children = (TreeBrowserEntry *)calloc(index_len+1, sizeof(rootNode));
+    rootNode.children = (TreeBrowserNode *)calloc(index_len+1, sizeof(rootNode));
     rootNode.numChildren = index_len+1;
     return_value = index_len+1;
     rootNode.children[0].parent = NULL;
@@ -138,7 +138,7 @@ int BrowseTree()
     r_children = &rootNode.children[1];
     for(int i=0; i<index_len; i++) {
         // Initialise the entry
-        TreeBrowserEntry *c = &r_children[i];
+        TreeBrowserNode *c = &r_children[i];
         c->parent = &rootNode;
         c->children = NULL;
         c->numChildren = 0;
@@ -152,16 +152,16 @@ int BrowseTree()
         if(0 > items_len) {
             continue;
         }
-        c->children = (TreeBrowserEntry *)calloc(items_len+1, sizeof(TreeBrowserEntry));
+        c->children = (TreeBrowserNode *)calloc(items_len+1, sizeof(TreeBrowserNode));
         c->numChildren = items_len+1;
         c->children[0].parent = c;
         c->children[0].children = NULL;
         c->children[0].numChildren = 0;
         snprintf(c->children[0].name, MAXJOLIET, "%s", "Up");
         snprintf(c->children[0].displayname, MAXDISPLAY, "%s", "Up");
-        TreeBrowserEntry *c_children = &c->children[1];
+        TreeBrowserNode *c_children = &c->children[1];
         for(int j=0; j<items_len; j++) {
-            TreeBrowserEntry *c2 = &c_children[j];
+            TreeBrowserNode *c2 = &c_children[j];
             c2->parent = c;
             c2->children = NULL;
             c2->numChildren = 0;
