@@ -46,10 +46,10 @@ void ResetTreeBrowser()
 }
 
 /****************************************************************************
- * UpdateNodeName()
+ * UpdateNodeEntries()
  * Update curent directory name for file treeBrowser
  ***************************************************************************/
-static int UpdateNodeName()
+static int UpdateNodeEntries()
 {
     TreeBrowserEntry *tbl = &treeBrowserList[treeBrowser.selIndex];
     // Did we try to go up a menu?
@@ -79,7 +79,7 @@ static int UpdateNodeName()
  ***************************************************************************/
 int BrowserChangeNode()
 {
-    return UpdateNodeName() ? treeBrowser.numEntries : -1;
+    return UpdateNodeEntries() ? treeBrowser.numEntries : -1;
 }
 
 /****************************************************************************
