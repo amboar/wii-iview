@@ -47,10 +47,11 @@ void ResetTreeBrowser(TreeBrowserInfo *info)
 }
 
 /****************************************************************************
- * UpdateNodeEntries()
- * Update curent directory name for file treeBrowser
+ * BrowserChangeFolder
+ *
+ * Update current directory and set new entry list if directory has changed
  ***************************************************************************/
-static void UpdateNodeEntries(TreeBrowserInfo *info)
+void BrowserChangeNode(TreeBrowserInfo *info)
 {
     TreeBrowserNode *chosenNode = &info->currentNode[info->selIndex];
     if(NULL == chosenNode || NULL == chosenNode->parent) {
@@ -73,16 +74,6 @@ static void UpdateNodeEntries(TreeBrowserInfo *info)
     }
     info->selIndex = 0;
     info->pageIndex = 0;
-}
-
-/****************************************************************************
- * BrowserChangeFolder
- *
- * Update current directory and set new entry list if directory has changed
- ***************************************************************************/
-void BrowserChangeNode(TreeBrowserInfo *info)
-{
-    UpdateNodeEntries(info);
     return;
 }
 
