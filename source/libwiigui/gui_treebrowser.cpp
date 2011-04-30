@@ -224,7 +224,7 @@ void GuiTreeBrowser::Update(GuiTrigger * t)
 	scrollbarBoxBtn->Update(t);
 
         char scrollbarIsHeld = scrollbarBoxBtn->GetState() == STATE_HELD;
-        char scrollbarRequired = treeBrowser.numEntries > FILE_PAGESIZE;
+        char scrollbarRequired = treeBrowser.currentNode->numChildren > FILE_PAGESIZE;
         char tIsScrollTrigger = scrollbarBoxBtn->GetStateChan() == t->chan;
         char tIsValid = t->wpad->ir.valid;
 	// move the file listing to respond to wiimote cursor movement
@@ -242,15 +242,15 @@ void GuiTreeBrowser::Update(GuiTrigger * t)
 			positionWiimote = scrollbarBoxBtn->GetMaxY();
                 }
 
-		treeBrowser.pageIndex = (positionWiimote * treeBrowser.numEntries)/130.0 - selectedItem;
+		treeBrowser.pageIndex = (positionWiimote * treeBrowser.currentNode->numChildren)/130.0 - selectedItem;
 
 		if(treeBrowser.pageIndex <= 0)
 		{
 			treeBrowser.pageIndex = 0;
 		}
-		else if(treeBrowser.pageIndex+FILE_PAGESIZE >= treeBrowser.numEntries)
+		else if(treeBrowser.pageIndex+FILE_PAGESIZE >= treeBrowser.currentNode->numChildren)
 		{
-			treeBrowser.pageIndex = treeBrowser.numEntries-FILE_PAGESIZE;
+			treeBrowser.pageIndex = treeBrowser.currentNode->numChildren - FILE_PAGESIZE;
 		}
 		listChanged = true;
 		focus = false;
@@ -278,11 +278,11 @@ void GuiTreeBrowser::Update(GuiTrigger * t)
 
 	if(t->Right())
 	{
-		if(treeBrowser.pageIndex < treeBrowser.numEntries && treeBrowser.numEntries > FILE_PAGESIZE)
+		if(treeBrowser.pageIndex < treeBrowser.currentNode->numChildren && treeBrowser.currentNode->numChildren > FILE_PAGESIZE)
 		{
 			treeBrowser.pageIndex += FILE_PAGESIZE;
-			if(treeBrowser.pageIndex+FILE_PAGESIZE >= treeBrowser.numEntries)
-				treeBrowser.pageIndex = treeBrowser.numEntries-FILE_PAGESIZE;
+			if(treeBrowser.pageIndex+FILE_PAGESIZE >= treeBrowser.currentNode->numChildren)
+				treeBrowser.pageIndex = treeBrowser.currentNode->numChildren-FILE_PAGESIZE;
 			listChanged = true;
 		}
 	}
@@ -298,7 +298,7 @@ void GuiTreeBrowser::Update(GuiTrigger * t)
 	}
 	else if(t->Down())
 	{
-		if(treeBrowser.pageIndex + selectedItem + 1 < treeBrowser.numEntries)
+		if(treeBrowser.pageIndex + selectedItem + 1 < treeBrowser.currentNode->numChildren)
 		{
 			if(selectedItem == FILE_PAGESIZE-1)
 			{
@@ -332,18 +332,18 @@ void GuiTreeBrowser::Update(GuiTrigger * t)
 
 	for(int i=0; i<FILE_PAGESIZE; i++)
 	{
-		if(listChanged || numEntries != treeBrowser.numEntries)
+		if(listChanged || numEntries != treeBrowser.currentNode->numChildren)
 		{
-			if(treeBrowser.pageIndex+i < treeBrowser.numEntries)
+			if(treeBrowser.pageIndex+i < treeBrowser.currentNode->numChildren)
 			{
 				if(nodeList[i]->GetState() == STATE_DISABLED)
 					nodeList[i]->SetState(STATE_DEFAULT);
 
 				nodeList[i]->SetVisible(true);
 
-				nodeListText[i]->SetText(treeBrowser.currentNode[treeBrowser.pageIndex+i].displayname);
+				nodeListText[i]->SetText(treeBrowser.currentNode->children[treeBrowser.pageIndex+i].displayname);
 
-				if(0 < treeBrowser.currentNode[treeBrowser.pageIndex+i].numChildren)
+				if(0 < treeBrowser.currentNode->children[treeBrowser.pageIndex+i].numChildren)
 				{
 					nodeList[i]->SetIcon(nodeListFolder[i]);
 					nodeListText[i]->SetPosition(30,0);
@@ -393,18 +393,18 @@ void GuiTreeBrowser::Update(GuiTrigger * t)
 	}
 	else
 	{
-		position = 130*(treeBrowser.pageIndex + FILE_PAGESIZE/2.0) / (treeBrowser.numEntries*1.0);
+		position = 130*(treeBrowser.pageIndex + FILE_PAGESIZE/2.0) / (treeBrowser.currentNode->numChildren*1.0);
 
 		if(treeBrowser.pageIndex/(FILE_PAGESIZE/2.0) < 1)
 			position = 0;
-		else if((treeBrowser.pageIndex+FILE_PAGESIZE)/(FILE_PAGESIZE*1.0) >= (treeBrowser.numEntries)/(FILE_PAGESIZE*1.0))
+		else if((treeBrowser.pageIndex+FILE_PAGESIZE)/(FILE_PAGESIZE*1.0) >= (treeBrowser.currentNode->numChildren)/(FILE_PAGESIZE*1.0))
 			position = 130;
 	}
 
 	scrollbarBoxBtn->SetPosition(0,position+36);
 
 	listChanged = false;
-	numEntries = treeBrowser.numEntries;
+	numEntries = treeBrowser.currentNode->numChildren;
 
 	if(updateCB)
 		updateCB(this);

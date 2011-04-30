@@ -30,7 +30,6 @@ TreeBrowserNode *rootNode;
  ***************************************************************************/
 void ResetTreeBrowser(TreeBrowserInfo *info)
 {
-	info->numEntries = 0;
 	info->selIndex = 0;
 	info->pageIndex = 0;
 
@@ -53,8 +52,8 @@ void ResetTreeBrowser(TreeBrowserInfo *info)
  ***************************************************************************/
 void BrowserChangeNode(TreeBrowserInfo *info)
 {
-    TreeBrowserNode *chosenNode = &info->currentNode[info->selIndex];
-    if(NULL == chosenNode || NULL == chosenNode->parent) {
+    TreeBrowserNode *chosenNode = &info->currentNode->children[info->selIndex];
+    if(NULL == chosenNode) {
         return;
     }
     // Did we try to go up a menu?
@@ -64,13 +63,9 @@ void BrowserChangeNode(TreeBrowserInfo *info)
             return;
         }
         // Otherwise jump up a level
-        if(NULL != chosenNode->parent->parent) {
-            info->numEntries = chosenNode->parent->parent->numChildren;
-            info->currentNode = chosenNode->parent->parent->children;
-        }
+        info->currentNode = info->currentNode->parent;
     } else {
-        info->numEntries = chosenNode->numChildren;
-        info->currentNode = chosenNode->children;
+        info->currentNode = chosenNode;
     }
     info->selIndex = 0;
     info->pageIndex = 0;
@@ -164,8 +159,6 @@ int BrowseTree(TreeBrowserInfo *info)
         }
         iv_destroy_series_items(items, items_len);
     }
-    info->numEntries = index_len+1;
-    info->currentNode = info->currentNode->children;
     // Cleanup
     iv_destroy_index(index, index_len);
 config_cleanup:

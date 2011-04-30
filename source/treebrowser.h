@@ -27,7 +27,6 @@ typedef struct _TreeBrowserEntry
 
 typedef struct
 {
-    int numEntries; // # of entries in browserList
     int selIndex; // currently selected index of browserList
     int pageIndex; // starting index of browserList page display
     TreeBrowserNode *currentNode;
