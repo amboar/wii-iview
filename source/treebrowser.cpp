@@ -49,52 +49,8 @@ void ResetTreeBrowser()
  * UpdateNodeName()
  * Update curent directory name for file treeBrowser
  ***************************************************************************/
-int UpdateNodeName()
+static int UpdateNodeName()
 {
-    /*
-	int size=0;
-	char * test;
-	char temp[1024];
-
-	// current directory doesn't change
-	if (strcmp(treeBrowserList[treeBrowser.selIndex].name,".") == 0)
-	{
-		return 0;
-	}
-	// go up to parent directory
-	else if (strcmp(treeBrowserList[treeBrowser.selIndex].name,"..") == 0)
-	{
-		// determine last subdirectory namelength
-		sprintf(temp,"%s",treeBrowser.dir);
-		test = strtok(temp,"/");
-		while (test != NULL)
-		{
-			size = strlen(test);
-			test = strtok(NULL,"/");
-		}
-
-		// remove last subdirectory name
-		size = strlen(treeBrowser.dir) - size - 1;
-		treeBrowser.dir[size] = 0;
-
-		return 1;
-	}
-	// Open a directory
-	else
-	{
-		// test new directory namelength
-		if ((strlen(treeBrowser.dir)+1+strlen(treeBrowserList[treeBrowser.selIndex].name)) < MAXPATHLEN)
-		{
-			// update current directory name
-			sprintf(treeBrowser.dir, "%s/%s",treeBrowser.dir, treeBrowserList[treeBrowser.selIndex].name);
-			return 1;
-		}
-		else
-		{
-			return -1;
-		}
-	}
-        */
     TREEBROWSERENTRY *tbl = &treeBrowserList[treeBrowser.selIndex];
     // Did we try to go up a menu?
     if(0 == treeBrowser.selIndex) {
@@ -144,84 +100,6 @@ NodeSortCallback(const void *f1, const void *f2)
 	return stricmp(((TREEBROWSERENTRY *)f1)->name, ((TREEBROWSERENTRY *)f2)->name);
 }
 
-/***************************************************************************
- * Browse subdirectories
- **************************************************************************/
-static int
-ParseDirectory()
-{
-    /*
-	DIR_ITER *dir = NULL;
-	char fulldir[MAXPATHLEN];
-	char filename[MAXPATHLEN];
-	struct stat filestat;
-
-	// reset treeBrowser
-	ResetTreeBrowser();
-
-	// if we can't open the dir, try opening the root dir
-	if (dir == NULL)
-	{
-		sprintf(treeBrowser.dir,"/");
-		dir = diropen(rootdir);
-		if (dir == NULL)
-		{
-			return -1;
-		}
-	}
-
-	// index files/folders
-	int entryNum = 0;
-
-	while(dirnext(dir,filename,&filestat) == 0)
-	{
-		if(strcmp(filename,".") != 0)
-		{
-			TREEBROWSERENTRY *newBrowserList =
-                                (TREEBROWSERENTRY *)realloc(browserList, (entryNum+1) * sizeof(TREEBROWSERENTRY));
-
-			if(!newBrowserList) // failed to allocate required memory
-			{
-				ResetTreeBrowser();
-				entryNum = -1;
-				break;
-			}
-			else
-			{
-				treeBrowserList = newBrowserList;
-			}
-			memset(&(treeBrowserList[entryNum]), 0, sizeof(TREEBROWSERENTRY)); // clear the new entry
-
-			strncpy(treeBrowserList[entryNum].name, filename, MAXJOLIET);
-
-			if(strcmp(filename,"..") == 0)
-			{
-				sprintf(treeBrowserList[entryNum].displayname, "Up One Level");
-			}
-			else
-			{
-				strncpy(treeBrowserList[entryNum].displayname, filename, MAXDISPLAY);	// crop name for display
-			}
-
-			//treeBrowserList[entryNum].length = filestat.st_size;
-			//treeBrowserList[entryNum].isdir = (filestat.st_mode & _IFDIR) == 0 ? 0 : 1; // flag this as a dir
-
-			entryNum++;
-		}
-	}
-
-	// close directory
-	dirclose(dir);
-
-	// Sort the file list
-	qsort(treeBrowserList, entryNum, sizeof(TREEBROWSERENTRY), NodeSortCallback);
-
-	treeBrowser.numEntries = entryNum;
-	return entryNum;
-        */
-    return 0;
-}
-
 /****************************************************************************
  * BrowserChangeFolder
  *
@@ -229,12 +107,7 @@ ParseDirectory()
  ***************************************************************************/
 int BrowserChangeNode()
 {
-	if(!UpdateNodeName())
-		return -1;
-
-	//_ParseDirectory();
-
-	return treeBrowser.numEntries;
+    return UpdateNodeName() ? treeBrowser.numEntries : -1;
 }
 
 /****************************************************************************

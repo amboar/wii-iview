@@ -36,7 +36,6 @@ extern TREEBROWSERINFO treeBrowser;
 extern TREEBROWSERENTRY * treeBrowserList;
 extern TREEBROWSERENTRY rootNode;
 
-int UpdateNodeName(int method);
 void ResetTreeBrowser();
 int BrowserChangeNode();
 int BrowseTree();
