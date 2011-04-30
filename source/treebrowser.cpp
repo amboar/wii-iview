@@ -49,27 +49,31 @@ void ResetTreeBrowser()
  * UpdateNodeEntries()
  * Update curent directory name for file treeBrowser
  ***************************************************************************/
-static int UpdateNodeEntries()
+static TreeBrowserEntry *UpdateNodeEntries(TreeBrowserEntry *oldEntry,
+        TreeBrowserEntry *chosenEntry, TreeBrowserInfo *info)
 {
-    TreeBrowserEntry *tbl = &treeBrowserList[treeBrowser.selIndex];
+    TreeBrowserEntry *list = NULL;
+    if(NULL == chosenEntry || NULL == chosenEntry->parent) {
+        return oldEntry;
+    }
     // Did we try to go up a menu?
-    if(0 == treeBrowser.selIndex) {
+    if(0 == info->selIndex) {
         // If we're at the series list there's nothing to do
-        if(&rootNode == tbl->parent) {
-            return 0;
+        if(&rootNode == chosenEntry->parent) {
+            return oldEntry;
         }
         // Otherwise jump up a level
-        if(NULL != tbl->parent->parent) {
-            treeBrowser.numEntries = tbl->parent->parent->numChildren;
-            treeBrowserList = tbl->parent->parent->children;
+        if(NULL != chosenEntry->parent->parent) {
+            info->numEntries = chosenEntry->parent->parent->numChildren;
+            list = chosenEntry->parent->parent->children;
         }
     } else {
-        treeBrowser.numEntries = tbl->numChildren;
-        treeBrowserList = tbl->children;
+        info->numEntries = chosenEntry->numChildren;
+        list = chosenEntry->children;
     }
-    treeBrowser.selIndex = 0;
-    treeBrowser.pageIndex = 0;
-    return 1;
+    info->selIndex = 0;
+    info->pageIndex = 0;
+    return list;
 }
 
 /****************************************************************************
@@ -79,7 +83,9 @@ static int UpdateNodeEntries()
  ***************************************************************************/
 int BrowserChangeNode()
 {
-    return UpdateNodeEntries() ? treeBrowser.numEntries : -1;
+    treeBrowserList = UpdateNodeEntries(treeBrowserList,
+            &treeBrowserList[treeBrowser.selIndex], &treeBrowser);
+    return treeBrowser.numEntries;
 }
 
 /****************************************************************************
