@@ -73,34 +73,6 @@ static int UpdateNodeName()
 }
 
 /****************************************************************************
- * NodeSortCallback
- *
- * Quick sort callback to sort file entries with the following order:
- *   .
- *   ..
- *   <dirs>
- *   <files>
- ***************************************************************************/
-static int
-NodeSortCallback(const void *f1, const void *f2)
-{
-	/* Special case for implicit directories */
-	if(((TreeBrowserEntry *)f1)->name[0] == '.' || ((TreeBrowserEntry *)f2)->name[0] == '.')
-	{
-		if(strcmp(((TreeBrowserEntry *)f1)->name, ".") == 0) { return -1; }
-		if(strcmp(((TreeBrowserEntry *)f2)->name, ".") == 0) { return 1; }
-		if(strcmp(((TreeBrowserEntry *)f1)->name, "..") == 0) { return -1; }
-		if(strcmp(((TreeBrowserEntry *)f2)->name, "..") == 0) { return 1; }
-	}
-
-	/* If one is a file and one is a directory the directory is first. */
-	if(0 == ((TreeBrowserEntry *)f1)->numChildren && (0 < ((TreeBrowserEntry *)f2)->numChildren)) return -1;
-	if((0 < ((TreeBrowserEntry *)f1)->numChildren) && 0 == ((TreeBrowserEntry *)f2)->numChildren) return 1;
-
-	return stricmp(((TreeBrowserEntry *)f1)->name, ((TreeBrowserEntry *)f2)->name);
-}
-
-/****************************************************************************
  * BrowserChangeFolder
  *
  * Update current directory and set new entry list if directory has changed
