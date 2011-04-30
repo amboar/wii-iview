@@ -28,52 +28,50 @@ TreeBrowserNode rootNode;
  * ResetTreeBrowser()
  * Clears the tree browser memory, and allocates one initial entry
  ***************************************************************************/
-void ResetTreeBrowser()
+void ResetTreeBrowser(TreeBrowserInfo *info)
 {
-	treeBrowser.numEntries = 0;
-	treeBrowser.selIndex = 0;
-	treeBrowser.pageIndex = 0;
+	info->numEntries = 0;
+	info->selIndex = 0;
+	info->pageIndex = 0;
 
 	// Clear any existing values
-	if(treeBrowserList != NULL)
+	if(info->currentNode != NULL)
 	{
-		free(treeBrowserList);
-		treeBrowserList = NULL;
+		free(info->currentNode);
+                info->currentNode = NULL;
 	}
+
 	// set aside space for 1 entry
-	treeBrowserList = (TreeBrowserNode *)malloc(sizeof(TreeBrowserNode));
-	memset(treeBrowserList, 0, sizeof(TreeBrowserNode));
+	info->currentNode = (TreeBrowserNode *)calloc(1, sizeof(TreeBrowserNode));
 }
 
 /****************************************************************************
  * UpdateNodeEntries()
  * Update curent directory name for file treeBrowser
  ***************************************************************************/
-static TreeBrowserNode *UpdateNodeEntries(TreeBrowserNode *oldEntry,
-        TreeBrowserNode *chosenEntry, TreeBrowserInfo *info)
+static void UpdateNodeEntries(TreeBrowserInfo *info)
 {
-    TreeBrowserNode *list = NULL;
-    if(NULL == chosenEntry || NULL == chosenEntry->parent) {
-        return oldEntry;
+    TreeBrowserNode *chosenNode = &info->currentNode[info->selIndex];
+    if(NULL == chosenNode || NULL == chosenNode->parent) {
+        return;
     }
     // Did we try to go up a menu?
     if(0 == info->selIndex) {
         // If we're at the series list there's nothing to do
-        if(&rootNode == chosenEntry->parent) {
-            return oldEntry;
+        if(&rootNode == chosenNode->parent) {
+            return;
         }
         // Otherwise jump up a level
-        if(NULL != chosenEntry->parent->parent) {
-            info->numEntries = chosenEntry->parent->parent->numChildren;
-            list = chosenEntry->parent->parent->children;
+        if(NULL != chosenNode->parent->parent) {
+            info->numEntries = chosenNode->parent->parent->numChildren;
+            info->currentNode = chosenNode->parent->parent->children;
         }
     } else {
-        info->numEntries = chosenEntry->numChildren;
-        list = chosenEntry->children;
+        info->numEntries = chosenNode->numChildren;
+        info->currentNode = chosenNode->children;
     }
     info->selIndex = 0;
     info->pageIndex = 0;
-    return list;
 }
 
 /****************************************************************************
@@ -81,11 +79,10 @@ static TreeBrowserNode *UpdateNodeEntries(TreeBrowserNode *oldEntry,
  *
  * Update current directory and set new entry list if directory has changed
  ***************************************************************************/
-int BrowserChangeNode()
+int BrowserChangeNode(TreeBrowserInfo *info)
 {
-    treeBrowserList = UpdateNodeEntries(treeBrowserList,
-            &treeBrowserList[treeBrowser.selIndex], &treeBrowser);
-    return treeBrowser.numEntries;
+    UpdateNodeEntries(info);
+    return info->numEntries;
 }
 
 /****************************************************************************
@@ -171,7 +168,7 @@ int BrowseTree()
         iv_destroy_series_items(items, items_len);
     }
     treeBrowser.numEntries = index_len+1;
-    treeBrowserList = rootNode.children;
+    treeBrowser.currentNode = rootNode.children;
     // Cleanup
     iv_destroy_index(index, index_len);
 config_cleanup:

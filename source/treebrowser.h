@@ -30,14 +30,14 @@ typedef struct
     int numEntries; // # of entries in browserList
     int selIndex; // currently selected index of browserList
     int pageIndex; // starting index of browserList page display
+    TreeBrowserNode *currentNode;
 } TreeBrowserInfo;
 
 extern TreeBrowserInfo treeBrowser;
-extern TreeBrowserNode *treeBrowserList;
 extern TreeBrowserNode rootNode;
 
-void ResetTreeBrowser();
-int BrowserChangeNode();
+void ResetTreeBrowser(TreeBrowserInfo *info);
+int BrowserChangeNode(TreeBrowserInfo *info);
 int BrowseTree();
 
 #endif

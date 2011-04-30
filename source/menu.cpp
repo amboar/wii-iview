@@ -26,7 +26,6 @@
 
 static GuiImageData * pointer[4];
 static GuiImage * bgImg = NULL;
-static GuiSound * bgMusic = NULL;
 static GuiWindow * mainWindow = NULL;
 static lwp_t guithread = LWP_THREAD_NULL;
 static bool guiHalt = true;
@@ -333,7 +332,7 @@ static int MenuBrowseDevice()
 		else
 			return MENU_SETTINGS;
 	} else {
-		int choice = WindowPrompt(
+		WindowPrompt(
 		"Info",
 		c_result,
 		"Don't Click",
@@ -390,9 +389,9 @@ static int MenuBrowseDevice()
 			{
 				fileBrowser.nodeList[i]->ResetState();
 				// check corresponding browser entry
-				if(0 == treeBrowser.selIndex || 0 < treeBrowserList[treeBrowser.selIndex].numChildren)
+				if(0 == treeBrowser.selIndex || 0 < treeBrowser.currentNode[treeBrowser.selIndex].numChildren)
 				{
-					if(BrowserChangeNode())
+					if(BrowserChangeNode(&treeBrowser))
 					{
 						fileBrowser.ResetState();
 						fileBrowser.nodeList[0]->SetState(STATE_SELECTED);
