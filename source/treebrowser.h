@@ -19,6 +19,7 @@
 typedef struct _TreeBrowserEntry
 {
     int (*selectedEvent)(struct _TreeBrowserEntry *node);
+    int (*destroyedEvent)(struct _TreeBrowserEntry *node);
     void *data; // User data for use by callbacks
     struct _TreeBrowserEntry *parent;
     struct _TreeBrowserEntry *children;
@@ -38,7 +39,8 @@ extern TreeBrowserInfo treeBrowser;
 extern TreeBrowserNode *rootNode;
 
 void ResetTreeBrowser(TreeBrowserInfo *info);
-void BrowserChangeNode(TreeBrowserInfo *info);
+int BrowserChangeNode(TreeBrowserInfo *info);
 int BrowseTree(TreeBrowserInfo *info);
+void DestroyTreeBrowser(TreeBrowserInfo *info);
 
 #endif

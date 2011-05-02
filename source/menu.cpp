@@ -388,20 +388,10 @@ static int MenuBrowseDevice()
 			{
 				fileBrowser.nodeList[i]->ResetState();
 				// check corresponding browser entry
-				if(0 == treeBrowser.selIndex || 0 < treeBrowser.currentNode->children[treeBrowser.selIndex].numChildren)
-				{
-                                        BrowserChangeNode(&treeBrowser);
-                                        fileBrowser.ResetState();
-                                        fileBrowser.nodeList[0]->SetState(STATE_SELECTED);
-                                        fileBrowser.TriggerUpdate();
-				}
-				else
-				{
-					ShutoffRumble();
-					mainWindow->SetState(STATE_DISABLED);
-					// load file
-					mainWindow->SetState(STATE_DEFAULT);
-				}
+                                BrowserChangeNode(&treeBrowser);
+                                fileBrowser.ResetState();
+                                fileBrowser.nodeList[0]->SetState(STATE_SELECTED);
+                                fileBrowser.TriggerUpdate();
 			}
 		}
 		if(backBtn.GetState() == STATE_CLICKED)
@@ -694,6 +684,8 @@ void MainMenu(int menu)
 	while(1) usleep(THREAD_SLEEP);
 
 	HaltGui();
+
+        DestroyTreeBrowser(&treeBrowser);
 
 	delete bgImg;
 	delete mainWindow;

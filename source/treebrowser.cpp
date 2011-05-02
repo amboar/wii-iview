@@ -24,6 +24,20 @@ TreeBrowserNode * treeBrowserList = NULL; // list of immediate children in treeB
 
 TreeBrowserNode *rootNode;
 
+struct IviewGlobalMetadata {
+    struct iv_config *config;
+    struct iv_series *index;
+    int index_len;
+};
+
+struct IviewSeriesMetadata {
+    struct iv_item *items;
+    int items_len;
+};
+
+int
+WindowPrompt(const char *title, const char *msg, const char *btn1Label, const char *btn2Label);
+
 /****************************************************************************
  * ResetTreeBrowser()
  * Clears the tree browser memory, and allocates one initial entry
@@ -50,22 +64,33 @@ void ResetTreeBrowser(TreeBrowserInfo *info)
  *
  * Update current directory and set new entry list if directory has changed
  ***************************************************************************/
-void BrowserChangeNode(TreeBrowserInfo *info)
+int BrowserChangeNode(TreeBrowserInfo *info)
 {
     TreeBrowserNode *chosenNode = &info->currentNode->children[info->selIndex];
     if(NULL == chosenNode) {
-        return;
+        return 1;
     }
     if(NULL != chosenNode->selectedEvent) {
-        if(chosenNode->selectedEvent(chosenNode)) {
-            return;
+        const int result = chosenNode->selectedEvent(chosenNode);
+        if(result) {
+            char items_len[10];
+            snprintf(items_len, 10, "%d", result);
+            WindowPrompt(
+                "Info",
+                items_len,
+                "Don't Click",
+                "Continue");
+            return result;
         }
+    }
+    if(0 == chosenNode->numChildren) {
+        return 0;
     }
     // Did we try to go up a menu?
     if(0 == info->selIndex) {
         // If we're at the series list there's nothing to do
         if(rootNode == chosenNode->parent) {
-            return;
+            return 0;
         }
         // Otherwise jump up a level
         info->currentNode = info->currentNode->parent;
@@ -74,13 +99,83 @@ void BrowserChangeNode(TreeBrowserInfo *info)
     }
     info->selIndex = 0;
     info->pageIndex = 0;
-    return;
+    return 0;
+}
+
+static int DownloadEp(TreeBrowserNode *node)
+{
+    struct IviewGlobalMetadata *globalMetadata = (struct IviewGlobalMetadata *)rootNode->data;
+    struct iv_auth *auth;
+    int result = iv_get_auth(globalMetadata->config, &auth);
+    if(IV_OK != result) {
+       return result;
+    }
+    xmlChar *path = xmlStrdup(((struct iv_item *)node->data)->url);
+    result = iv_fetch_video(auth, (struct iv_item *)node->data, "bazinga.flv");
+    if(IV_OK != result) {
+        iv_destroy_auth(auth);
+        return result;
+    }
+    iv_destroy_auth(auth);
+    free(path);
+    return 0;
+}
+
+static void DestroyTree(TreeBrowserNode *node)
+{
+    // PRE: Destroy children first
+    if(0 < node->numChildren && NULL != node->children) {
+        for(int i=0; i<node->numChildren; i++) {
+            DestroyTree(&node->children[i]);
+        }
+    }
+
+    // IN: Destroy node in current node
+    if(NULL != node->destroyedEvent) {
+        node->destroyedEvent(node);
+    }
+    free(node->name);
+    free(node->displayname);
+    free(node->children);
+    node->numChildren = 0;
+}
+
+/****************************************************************************
+ * DestroyTreeBrowser
+ * Triggers destroyEvent callback to free user data and frees child nodes
+ ***************************************************************************/
+void DestroyTreeBrowser(TreeBrowserInfo *info)
+{
+    DestroyTree(rootNode);
+    free(rootNode);
+}
+
+static int DestroyIviewConfig(TreeBrowserNode *node)
+{
+    struct IviewGlobalMetadata *metadata = (struct IviewGlobalMetadata *)node->data;
+    if(NULL != metadata->config) {
+        iv_destroy_config(metadata->config);
+    }
+    if(NULL != metadata->index) {
+        iv_destroy_index(metadata->index, metadata->index_len);
+    }
+    return 0;
+}
+
+static int DestroyIviewItems(TreeBrowserNode *node)
+{
+    struct IviewSeriesMetadata *metadata = (struct IviewSeriesMetadata *)node->data;
+    if(NULL != metadata->items) {
+        iv_destroy_series_items(metadata->items, metadata->items_len);
+    }
+    return 0;
 }
 
 static void
 populateNode(
         TreeBrowserNode *node,
         int (*selectedEvent)(TreeBrowserNode *node),
+        int (*destroyedEvent)(TreeBrowserNode *node),
         void *data,
         TreeBrowserNode *parent,
         TreeBrowserNode *children,
@@ -88,6 +183,7 @@ populateNode(
         char *name)
 {
     node->selectedEvent = selectedEvent;
+    node->destroyedEvent = destroyedEvent;
     node->data = data;
     node->parent = parent;
     node->children = children;
@@ -102,82 +198,84 @@ populateNode(
  ***************************************************************************/
 int BrowseTree(TreeBrowserInfo *info)
 {
-    int return_value = 0;
-
-    // libiview variable initialisation - can't declare these inline as g++
-    // barfs about jumping over declarations.
-
-    struct iv_config *iview_config;
-
-    struct iv_series *index;
-    int index_len;
-
-    if(NULL == info->currentNode) {
+    struct IviewGlobalMetadata *globalMetadata = (struct IviewGlobalMetadata *)
+        calloc(1, sizeof(struct IviewGlobalMetadata));
+    if(NULL == globalMetadata) {
         return -1;
     }
 
-    TreeBrowserNode *r_children;
+    if(NULL == info->currentNode) {
+        return -2;
+    }
 
     // root node value initialisation
     info->currentNode = rootNode;
-    populateNode(info->currentNode, NULL, NULL, NULL, NULL, 0, (char *)"ROOT");
+    populateNode(info->currentNode, NULL, &DestroyIviewConfig, globalMetadata,
+            NULL, NULL, 0, (char *)"ROOT");
 
     // start querying ABC iview servers
-    if(0 > iv_easy_config(&iview_config)) {
-        return_value = -2;
+    if(0 > iv_easy_config(&globalMetadata->config)) {
+        return -3;
     }
-    index_len = iv_easy_index(iview_config, &index);
-    if(0 > index_len) {
-        return_value = -3;
-        goto config_cleanup;
+
+    // Fetch series index
+    globalMetadata->index_len = iv_easy_index(globalMetadata->config,
+            &globalMetadata->index);
+    if(0 > globalMetadata->index_len) {
+        return -4;
     }
 
     // Artificial limit - hack for testing
-    index_len = 5;
-    return_value = index_len+1;
+    globalMetadata->index_len = 5;
 
     // populate tree root node with the series index elements
-    info->currentNode->children = (TreeBrowserNode *)calloc(index_len+1, sizeof(TreeBrowserNode));
-    info->currentNode->numChildren = index_len+1;
-    populateNode(&info->currentNode->children[0], NULL, NULL, NULL, NULL, 0, (char *)"Up");
-    r_children = &info->currentNode->children[1];
-    for(int i=0; i<index_len; i++) {
+    info->currentNode->children =
+        (TreeBrowserNode *)calloc(globalMetadata->index_len + 1,
+                sizeof(TreeBrowserNode));
+    info->currentNode->numChildren = globalMetadata->index_len + 1;
+    populateNode(&info->currentNode->children[0], NULL, NULL, NULL, NULL, NULL,
+            0, (char *)"Up");
+
+    TreeBrowserNode *r_children = &info->currentNode->children[1];
+    for(int i=0; i<globalMetadata->index_len; i++) {
         // Initialise the entry
         TreeBrowserNode *c = &r_children[i];
-        populateNode(c, NULL, &index[i], rootNode, NULL, 0, (char *)index[i].title);
+        struct IviewSeriesMetadata *seriesMetadata =
+            (struct IviewSeriesMetadata *)calloc(1, sizeof(IviewSeriesMetadata));
+
+        // Store series struct in data element
+        populateNode(c, NULL, &DestroyIviewItems, seriesMetadata, rootNode,
+                NULL, 0, (char *)(globalMetadata->index[i].title));
 
         // Populate children with mandatory "Up" entry
         c->children = (TreeBrowserNode *)calloc(1, sizeof(TreeBrowserNode));
         c->numChildren = 1;
-        populateNode(&c->children[0], NULL, NULL, c, NULL, 0, (char *)"Up");
+        populateNode(&c->children[0], NULL, NULL, NULL, c, NULL, 0,
+                (char *)"Up");
 
         // Fetch episodes
-        struct iv_item *items;
-        const int items_len =
-            iv_easy_series_items(iview_config, &index[i], &items);
-        if(0 > items_len) {
+        seriesMetadata->items_len = iv_easy_series_items(globalMetadata->config,
+                &globalMetadata->index[i], &seriesMetadata->items);
+        if(0 > seriesMetadata->items_len) {
             continue;
         }
 
         // Make space in ->children for the children
-        TreeBrowserNode *tmpChildren =
-            (TreeBrowserNode *)realloc(c->children, (items_len+1)*sizeof(TreeBrowserNode));
+        TreeBrowserNode *tmpChildren = (TreeBrowserNode *)realloc(c->children,
+                (seriesMetadata->items_len+1)*sizeof(TreeBrowserNode));
         if(NULL == tmpChildren) {
-            iv_destroy_series_items(items, items_len);
-            break;
+            return -6;
         }
         c->children = tmpChildren;
-        c->numChildren = items_len+1;
+        c->numChildren = seriesMetadata->items_len+1;
         TreeBrowserNode *c_children = &c->children[1];
-        for(int j=0; j<items_len; j++) {
+        for(int j=0; j<seriesMetadata->items_len; j++) {
             TreeBrowserNode *c2 = &c_children[j];
-            populateNode(c2, NULL, &items[j], c, NULL, 0, (char *)items[j].title);
+
+            // Store item struct in data element
+            populateNode(c2, &DownloadEp, NULL, &seriesMetadata->items[j], c,
+                    NULL, 0, (char *)(seriesMetadata->items[j].title));
         }
-        iv_destroy_series_items(items, items_len);
     }
-    // Cleanup
-    iv_destroy_index(index, index_len);
-config_cleanup:
-    iv_destroy_config(iview_config);
-    return return_value;
+    return globalMetadata->index_len + 1;
 }
