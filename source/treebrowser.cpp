@@ -91,17 +91,7 @@ int BrowserChangeNode(TreeBrowserInfo *info)
     if(NULL == chosenNode || 0 == chosenNode->numChildren) {
         return -1;
     }
-    // Did we try to go up a menu?
-    if(0 == info->selIndex) {
-        // If we're at the series list there's nothing to do
-        if(rootNode == chosenNode->parent) {
-            return -1;
-        }
-        // Otherwise jump up a level
-        info->currentNode = info->currentNode->parent;
-    } else {
-        info->currentNode = chosenNode;
-    }
+    info->currentNode = chosenNode;
     info->selIndex = 0;
     info->pageIndex = 0;
     return 0;
@@ -235,16 +225,13 @@ int BrowseTree(TreeBrowserInfo *info)
 
     // populate tree root node with the series index elements
     info->currentNode->children =
-        (TreeBrowserNode *)calloc(globalMetadata->index_len + 1,
+        (TreeBrowserNode *)calloc(globalMetadata->index_len,
                 sizeof(TreeBrowserNode));
-    info->currentNode->numChildren = globalMetadata->index_len + 1;
-    populateNode(&info->currentNode->children[0], NULL, NULL, NULL, NULL, NULL,
-            0, (char *)"Up");
+    info->currentNode->numChildren = globalMetadata->index_len;
 
-    TreeBrowserNode *r_children = &info->currentNode->children[1];
     for(int i=0; i<globalMetadata->index_len; i++) {
         // Initialise the entry
-        TreeBrowserNode *c = &r_children[i];
+        TreeBrowserNode *c = &info->currentNode->children[i];
         struct IviewSeriesMetadata *seriesMetadata =
             (struct IviewSeriesMetadata *)calloc(1, sizeof(IviewSeriesMetadata));
 
@@ -255,8 +242,8 @@ int BrowseTree(TreeBrowserInfo *info)
         // Populate children with mandatory "Up" entry
         c->children = (TreeBrowserNode *)calloc(1, sizeof(TreeBrowserNode));
         c->numChildren = 1;
-        populateNode(&c->children[0], NULL, NULL, NULL, c, NULL, 0,
-                (char *)"Up");
+        populateNode(&c->children[0], NULL, NULL, NULL, rootNode, rootNode->children,
+                rootNode->numChildren, (char *)"Up");
 
         // Fetch episodes
         seriesMetadata->items_len = iv_easy_series_items(globalMetadata->config,
