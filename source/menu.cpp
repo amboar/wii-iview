@@ -388,10 +388,22 @@ static int MenuBrowseDevice()
 			{
 				fileBrowser.nodeList[i]->ResetState();
 				// check corresponding browser entry
-                                BrowserChangeNode(&treeBrowser);
-                                fileBrowser.ResetState();
-                                fileBrowser.nodeList[0]->SetState(STATE_SELECTED);
-                                fileBrowser.TriggerUpdate();
+                                TreeBrowserNode *selectedNode = GetSelectedNode(&treeBrowser);
+				if(IsLeafNode(selectedNode))
+				{
+					ShutoffRumble();
+					mainWindow->SetState(STATE_DISABLED);
+					// load file
+                                        TriggerSelectedAction(selectedNode);
+					mainWindow->SetState(STATE_DEFAULT);
+				}
+				else
+				{
+                                        BrowserChangeNode(&treeBrowser);
+                                        fileBrowser.ResetState();
+                                        fileBrowser.nodeList[0]->SetState(STATE_SELECTED);
+                                        fileBrowser.TriggerUpdate();
+				}
 			}
 		}
 		if(backBtn.GetState() == STATE_CLICKED)

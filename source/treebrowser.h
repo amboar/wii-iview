@@ -39,6 +39,9 @@ extern TreeBrowserInfo treeBrowser;
 extern TreeBrowserNode *rootNode;
 
 void ResetTreeBrowser(TreeBrowserInfo *info);
+TreeBrowserNode *GetSelectedNode(TreeBrowserInfo *info);
+int IsLeafNode(TreeBrowserNode *node);
+int TriggerSelectedAction(TreeBrowserNode *node);
 int BrowserChangeNode(TreeBrowserInfo *info);
 int BrowseTree(TreeBrowserInfo *info);
 void DestroyTreeBrowser(TreeBrowserInfo *info);

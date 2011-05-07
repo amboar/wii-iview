@@ -59,38 +59,43 @@ void ResetTreeBrowser(TreeBrowserInfo *info)
 	info->currentNode = rootNode;
 }
 
+TreeBrowserNode *GetSelectedNode(TreeBrowserInfo *info)
+{
+    return &info->currentNode->children[info->selIndex];
+}
+
+int IsLeafNode(TreeBrowserNode *node)
+{
+    return (0 == node->numChildren) && (NULL == node->children);
+}
+
+int TriggerSelectedAction(TreeBrowserNode *node)
+{
+    if(NULL == node->selectedEvent) {
+        return 0;
+    }
+    return node->selectedEvent(node);
+}
+
 /****************************************************************************
  * BrowserChangeFolder
  *
  * Update current directory and set new entry list if directory has changed
+ *
+ * Returns 0 If the current node was changed as requested, -1 if the current
+ * node is unchanged.
  ***************************************************************************/
 int BrowserChangeNode(TreeBrowserInfo *info)
 {
-    TreeBrowserNode *chosenNode = &info->currentNode->children[info->selIndex];
-    if(NULL == chosenNode) {
-        return 1;
-    }
-    if(NULL != chosenNode->selectedEvent) {
-        const int result = chosenNode->selectedEvent(chosenNode);
-        if(result) {
-            char items_len[10];
-            snprintf(items_len, 10, "%d", result);
-            WindowPrompt(
-                "Info",
-                items_len,
-                "Don't Click",
-                "Continue");
-            return result;
-        }
-    }
-    if(0 == chosenNode->numChildren) {
-        return 0;
+    TreeBrowserNode *chosenNode = GetSelectedNode(info);
+    if(NULL == chosenNode || 0 == chosenNode->numChildren) {
+        return -1;
     }
     // Did we try to go up a menu?
     if(0 == info->selIndex) {
         // If we're at the series list there's nothing to do
         if(rootNode == chosenNode->parent) {
-            return 0;
+            return -1;
         }
         // Otherwise jump up a level
         info->currentNode = info->currentNode->parent;
