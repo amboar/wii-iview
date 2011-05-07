@@ -340,7 +340,7 @@ static int MenuBrowseDevice()
 
 	int menu = MENU_NONE;
 
-	sprintf(title, "Browse Files");
+	sprintf(title, "Browse Series & Episodes");
 
 	GuiText titleTxt(title, 28, (GXColor){255, 255, 255, 255});
 	titleTxt.SetAlignment(ALIGN_LEFT, ALIGN_TOP);
@@ -438,7 +438,7 @@ static int MenuSettings()
 	GuiTrigger trigHome;
 	trigHome.SetButtonOnlyTrigger(-1, WPAD_BUTTON_HOME | WPAD_CLASSIC_BUTTON_HOME, 0);
 
-	GuiText fileBtnTxt("File Browser", 22, (GXColor){0, 0, 0, 255});
+	GuiText fileBtnTxt("iView Browser", 22, (GXColor){0, 0, 0, 255});
 	fileBtnTxt.SetWrap(true, btnLargeOutline.GetWidth()-30);
 	GuiImage fileBtnImg(&btnLargeOutline);
 	GuiImage fileBtnImgOver(&btnLargeOutlineOver);
