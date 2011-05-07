@@ -396,14 +396,21 @@ static int MenuBrowseDevice()
 					// load file
                                         TriggerSelectedAction(selectedNode);
 					mainWindow->SetState(STATE_DEFAULT);
-				}
-				else
-				{
+                                        // Test again in case the selected
+                                        // action was populating the node
+                                        if(!IsLeafNode(selectedNode))
+                                        {
+                                                BrowserChangeNode(&treeBrowser);
+                                                fileBrowser.ResetState();
+                                                fileBrowser.nodeList[0]->SetState(STATE_SELECTED);
+                                                fileBrowser.TriggerUpdate();
+                                        }
+				} else {
                                         BrowserChangeNode(&treeBrowser);
                                         fileBrowser.ResetState();
                                         fileBrowser.nodeList[0]->SetState(STATE_SELECTED);
                                         fileBrowser.TriggerUpdate();
-				}
+                                }
 			}
 		}
 		if(backBtn.GetState() == STATE_CLICKED)

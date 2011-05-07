@@ -31,6 +31,7 @@ struct IviewGlobalMetadata {
 };
 
 struct IviewSeriesMetadata {
+    struct iv_series *series;
     struct iv_item *items;
     int items_len;
 };
@@ -116,6 +117,65 @@ static int DownloadEp(TreeBrowserNode *node)
     return 0;
 }
 
+static void
+populateNode(
+        TreeBrowserNode *node,
+        int (*selectedEvent)(TreeBrowserNode *node),
+        int (*destroyedEvent)(TreeBrowserNode *node),
+        void *data,
+        TreeBrowserNode *parent,
+        TreeBrowserNode *children,
+        int numChildren,
+        char *name)
+{
+    node->selectedEvent = selectedEvent;
+    node->destroyedEvent = destroyedEvent;
+    node->data = data;
+    node->parent = parent;
+    node->children = children;
+    node->numChildren = numChildren;
+    snprintf(node->name, MAXJOLIET, "%s", name);
+    snprintf(node->displayname, MAXDISPLAY, "%s", name);
+}
+
+static int GetSeries(TreeBrowserNode *node)
+{
+    struct IviewGlobalMetadata *globalMetadata =
+        (struct IviewGlobalMetadata *)rootNode->data;
+    struct IviewSeriesMetadata *seriesMetadata =
+        (struct IviewSeriesMetadata *)node->data;
+
+    // Populate children with mandatory "Up" entry
+    node->children = (TreeBrowserNode *)calloc(1, sizeof(TreeBrowserNode));
+    node->numChildren = 1;
+    populateNode(&node->children[0], NULL, NULL, NULL, rootNode,
+            rootNode->children, rootNode->numChildren, (char *)"Up");
+
+    // Fetch episodes
+    seriesMetadata->items_len = iv_easy_series_items(globalMetadata->config,
+            seriesMetadata->series, &seriesMetadata->items);
+    if(0 > seriesMetadata->items_len) {
+        return -1;
+    }
+
+    // Make space in ->children for the children
+    TreeBrowserNode *tmpChildren = (TreeBrowserNode *)realloc(node->children,
+            (seriesMetadata->items_len+1)*sizeof(TreeBrowserNode));
+    if(NULL == tmpChildren) {
+        return -6;
+    }
+    node->children = tmpChildren;
+    node->numChildren = seriesMetadata->items_len+1;
+    TreeBrowserNode *children = &node->children[1];
+    for(int j=0; j<seriesMetadata->items_len; j++) {
+        // Store item struct in data element
+        populateNode(&children[j], &DownloadEp, NULL,
+                &seriesMetadata->items[j], node, NULL, 0,
+                (char *)(seriesMetadata->items[j].title));
+    }
+    return 0;
+}
+
 static void DestroyTree(TreeBrowserNode *node)
 {
     // PRE: Destroy children first
@@ -166,27 +226,6 @@ static int DestroyIviewItems(TreeBrowserNode *node)
     return 0;
 }
 
-static void
-populateNode(
-        TreeBrowserNode *node,
-        int (*selectedEvent)(TreeBrowserNode *node),
-        int (*destroyedEvent)(TreeBrowserNode *node),
-        void *data,
-        TreeBrowserNode *parent,
-        TreeBrowserNode *children,
-        int numChildren,
-        char *name)
-{
-    node->selectedEvent = selectedEvent;
-    node->destroyedEvent = destroyedEvent;
-    node->data = data;
-    node->parent = parent;
-    node->children = children;
-    node->numChildren = numChildren;
-    snprintf(node->name, MAXJOLIET, "%s", name);
-    snprintf(node->displayname, MAXDISPLAY, "%s", name);
-}
-
 /****************************************************************************
  * BrowseTree
  * Displays a list of files on the selected device
@@ -220,9 +259,6 @@ int BrowseTree(TreeBrowserInfo *info)
         return -4;
     }
 
-    // Artificial limit - hack for testing
-    globalMetadata->index_len = 5;
-
     // populate tree root node with the series index elements
     info->currentNode->children =
         (TreeBrowserNode *)calloc(globalMetadata->index_len,
@@ -234,40 +270,11 @@ int BrowseTree(TreeBrowserInfo *info)
         TreeBrowserNode *c = &info->currentNode->children[i];
         struct IviewSeriesMetadata *seriesMetadata =
             (struct IviewSeriesMetadata *)calloc(1, sizeof(IviewSeriesMetadata));
+        seriesMetadata->series = &globalMetadata->index[i];
 
         // Store series struct in data element
-        populateNode(c, NULL, &DestroyIviewItems, seriesMetadata, rootNode,
+        populateNode(c, &GetSeries, &DestroyIviewItems, seriesMetadata, rootNode,
                 NULL, 0, (char *)(globalMetadata->index[i].title));
-
-        // Populate children with mandatory "Up" entry
-        c->children = (TreeBrowserNode *)calloc(1, sizeof(TreeBrowserNode));
-        c->numChildren = 1;
-        populateNode(&c->children[0], NULL, NULL, NULL, rootNode, rootNode->children,
-                rootNode->numChildren, (char *)"Up");
-
-        // Fetch episodes
-        seriesMetadata->items_len = iv_easy_series_items(globalMetadata->config,
-                &globalMetadata->index[i], &seriesMetadata->items);
-        if(0 > seriesMetadata->items_len) {
-            continue;
-        }
-
-        // Make space in ->children for the children
-        TreeBrowserNode *tmpChildren = (TreeBrowserNode *)realloc(c->children,
-                (seriesMetadata->items_len+1)*sizeof(TreeBrowserNode));
-        if(NULL == tmpChildren) {
-            return -6;
-        }
-        c->children = tmpChildren;
-        c->numChildren = seriesMetadata->items_len+1;
-        TreeBrowserNode *c_children = &c->children[1];
-        for(int j=0; j<seriesMetadata->items_len; j++) {
-            TreeBrowserNode *c2 = &c_children[j];
-
-            // Store item struct in data element
-            populateNode(c2, &DownloadEp, NULL, &seriesMetadata->items[j], c,
-                    NULL, 0, (char *)(seriesMetadata->items[j].title));
-        }
     }
-    return globalMetadata->index_len + 1;
+    return globalMetadata->index_len;
 }

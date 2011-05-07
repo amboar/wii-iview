@@ -343,16 +343,8 @@ void GuiTreeBrowser::Update(GuiTrigger * t)
 
 				nodeListText[i]->SetText(treeBrowser.currentNode->children[treeBrowser.pageIndex+i].displayname);
 
-				if(0 < treeBrowser.currentNode->children[treeBrowser.pageIndex+i].numChildren)
-				{
-					nodeList[i]->SetIcon(nodeListFolder[i]);
-					nodeListText[i]->SetPosition(30,0);
-				}
-				else
-				{
-					nodeList[i]->SetIcon(NULL);
-					nodeListText[i]->SetPosition(10,0);
-				}
+                                nodeList[i]->SetIcon(NULL);
+                                nodeListText[i]->SetPosition(10,0);
 			}
 			else
 			{
