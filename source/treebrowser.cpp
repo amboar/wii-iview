@@ -38,8 +38,8 @@ struct IviewGlobalMetadata {
 
 struct IviewSeriesMetadata {
     struct iv_series *series;
-    struct iv_item *items;
-    int items_len;
+    struct iv_episode *episodes;
+    int episodes_len;
 };
 
 int
@@ -112,14 +112,22 @@ static int DownloadEp(TreeBrowserNode *node)
     if(IV_OK != result) {
        return result;
     }
-    xmlChar *path = xmlStrdup(((struct iv_item *)node->data)->url);
-    result = iv_fetch_video(auth, (struct iv_item *)node->data, "bazinga.flv");
+    /* TODO(joel): Is ->url trusted to be null terminated? */
+    char *path = strdup(((struct iv_episode *)node->data)->url);
+    if (path == NULL) {
+        /* TODO(joel): Bail appropriately. */
+    }
+    const int fd = open(basename(path), O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+    if (0 > fd) {
+        /* TODO(joel): Fetch errno, and bail appropriately. */
+    }
+    result = iv_fetch_episode(auth, (struct iv_episode *)node->data, fd);
     if(IV_OK != result) {
         iv_destroy_auth(auth);
         return result;
     }
     iv_destroy_auth(auth);
-    free(path);
+    close(fd);
     return 0;
 }
 
@@ -158,26 +166,26 @@ static int GetSeries(TreeBrowserNode *node)
             rootNode->children, rootNode->numChildren, (char *)"Up");
 
     // Fetch episodes
-    seriesMetadata->items_len = iv_easy_series_items(globalMetadata->config,
-            seriesMetadata->series, &seriesMetadata->items);
-    if(0 > seriesMetadata->items_len) {
+    seriesMetadata->episodes_len = iv_easy_series(globalMetadata->config,
+            seriesMetadata->series, &seriesMetadata->episodes);
+    if(0 > seriesMetadata->episodes_len) {
         return -1;
     }
 
     // Make space in ->children for the children
     TreeBrowserNode *tmpChildren = (TreeBrowserNode *)realloc(node->children,
-            (seriesMetadata->items_len+1)*sizeof(TreeBrowserNode));
+            (seriesMetadata->episodes_len+1)*sizeof(TreeBrowserNode));
     if(NULL == tmpChildren) {
         return -6;
     }
     node->children = tmpChildren;
-    node->numChildren = seriesMetadata->items_len+1;
+    node->numChildren = seriesMetadata->episodes_len+1;
     TreeBrowserNode *children = &node->children[1];
-    for(int j=0; j<seriesMetadata->items_len; j++) {
+    for(int j=0; j<seriesMetadata->episodes_len; j++) {
         // Store item struct in data element
         populateNode(&children[j], &DownloadEp, NULL,
-                &seriesMetadata->items[j], node, NULL, 0,
-                (char *)(seriesMetadata->items[j].title));
+                &seriesMetadata->episodes[j], node, NULL, 0,
+                (char *)(seriesMetadata->episodes[j].title));
     }
     return 0;
 }
@@ -226,8 +234,8 @@ static int DestroyIviewConfig(TreeBrowserNode *node)
 static int DestroyIviewItems(TreeBrowserNode *node)
 {
     struct IviewSeriesMetadata *metadata = (struct IviewSeriesMetadata *)node->data;
-    if(NULL != metadata->items) {
-        iv_destroy_series_items(metadata->items, metadata->items_len);
+    if(NULL != metadata->episodes) {
+        iv_destroy_series(metadata->episodes, metadata->episodes_len);
     }
     return 0;
 }
