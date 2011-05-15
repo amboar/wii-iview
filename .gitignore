@@ -1,0 +1,5 @@
+/libwiigui-demo.dol
+/libwiigui-demo.elf
+*.swp
+*.un~
+/build/
