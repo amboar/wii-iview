@@ -7,13 +7,19 @@
  * Generic file routines - reading, writing, browsing
  ***************************************************************************/
 
-#include <gccore.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <malloc.h>
+#include <libgen.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#include <gccore.h>
 #include <string.h>
 #include <wiiuse/wpad.h>
 #include <sys/dir.h>
-#include <malloc.h>
+
 #include <iview.h>
 
 #include "treebrowser.h"
