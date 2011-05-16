@@ -107,11 +107,6 @@ int BrowserChangeNode(TreeBrowserInfo *info)
 static int DownloadEp(TreeBrowserNode *node)
 {
     struct IviewGlobalMetadata *globalMetadata = (struct IviewGlobalMetadata *)rootNode->data;
-    struct iv_auth *auth;
-    int result = iv_get_auth(globalMetadata->config, &auth);
-    if(IV_OK != result) {
-       return result;
-    }
     /* TODO(joel): Is ->url trusted to be null terminated? */
     char *path = strdup(((struct iv_episode *)node->data)->url);
     if (path == NULL) {
@@ -121,14 +116,10 @@ static int DownloadEp(TreeBrowserNode *node)
     if (0 > fd) {
         /* TODO(joel): Fetch errno, and bail appropriately. */
     }
-    result = iv_fetch_episode(auth, (struct iv_episode *)node->data, fd);
-    if(IV_OK != result) {
-        iv_destroy_auth(auth);
-        return result;
-    }
-    iv_destroy_auth(auth);
+    const int result = iv_easy_fetch_episode(globalMetadata->config,
+            (struct iv_episode *)node->data, fd);
     close(fd);
-    return 0;
+    return result;
 }
 
 static void
