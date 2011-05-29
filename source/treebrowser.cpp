@@ -7,6 +7,7 @@
  * Generic file routines - reading, writing, browsing
  ***************************************************************************/
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
@@ -107,18 +108,30 @@ int BrowserChangeNode(TreeBrowserInfo *info)
 static int DownloadEp(TreeBrowserNode *node)
 {
     struct IviewGlobalMetadata *globalMetadata = (struct IviewGlobalMetadata *)rootNode->data;
-    /* TODO(joel): Is ->url trusted to be null terminated? */
-    char *path = strdup(((struct iv_episode *)node->data)->url);
-    if (path == NULL) {
-        /* TODO(joel): Bail appropriately. */
+    // Place files on the root of the SD card
+    char *path;
+    if(0 > asprintf(&path, "/%s", basename((char *)((struct iv_episode *)node->data)->url))) {
+        return -1;
     }
-    const int fd = open(basename(path), O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
-    if (0 > fd) {
-        /* TODO(joel): Fetch errno, and bail appropriately. */
+    // Oh noes...
+    if (path == NULL) { return -1; }
+    // Hack to get around a bug in libogc - in reality we should equally be able to do:
+    //
+    // const int fd = open(path, O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+    //
+    // But for whatever reason, this causes EBADF in libiview when trying to
+    // write data to the resulting handle. Instead, we take the long way round:
+    FILE *f = fopen(path, "w+");
+    if (!f) {
+        int error = -(errno);
+        free(path);
+        return error;
     }
+    const int fd = fileno(f);
     const int result = iv_easy_fetch_episode(globalMetadata->config,
             (struct iv_episode *)node->data, fd);
     close(fd);
+    free(path);
     return result;
 }
 
