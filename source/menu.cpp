@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wiiuse/wpad.h>
+#include <iview.h>
 
 #include "libwiigui/gui.h"
 #include "menu.h"
@@ -162,6 +163,63 @@ WindowPrompt(const char *title, const char *msg, const char *btn1Label, const ch
 	mainWindow->SetState(STATE_DEFAULT);
 	ResumeGui();
 	return choice;
+}
+
+void *
+DownloadInfo(void *_progress)
+{
+        struct iv_progress *progress = (struct iv_progress *)_progress;
+
+	GuiWindow promptWindow(448,288);
+	promptWindow.SetAlignment(ALIGN_CENTRE, ALIGN_MIDDLE);
+	promptWindow.SetPosition(0, -10);
+	GuiSound btnSoundOver(button_over_pcm, button_over_pcm_size, SOUND_PCM);
+	GuiImageData btnOutline(button_png);
+	GuiImageData btnOutlineOver(button_over_png);
+	GuiTrigger trigA;
+	trigA.SetSimpleTrigger(-1, WPAD_BUTTON_A | WPAD_CLASSIC_BUTTON_A, PAD_BUTTON_A);
+
+	GuiImageData dialogBox(dialogue_box_png);
+	GuiImage dialogBoxImg(&dialogBox);
+
+	GuiText titleTxt("Download Progress", 26, (GXColor){0, 0, 0, 255});
+	titleTxt.SetAlignment(ALIGN_CENTRE, ALIGN_TOP);
+	titleTxt.SetPosition(0,40);
+	GuiText msgTxt("No progress", 22, (GXColor){0, 0, 0, 255});
+	msgTxt.SetAlignment(ALIGN_CENTRE, ALIGN_MIDDLE);
+	msgTxt.SetPosition(0,-20);
+	msgTxt.SetWrap(true, 400);
+
+	promptWindow.Append(&dialogBoxImg);
+	promptWindow.Append(&titleTxt);
+	promptWindow.Append(&msgTxt);
+
+	promptWindow.SetEffect(EFFECT_SLIDE_TOP | EFFECT_SLIDE_IN, 50);
+	HaltGui();
+	mainWindow->SetState(STATE_DISABLED);
+	mainWindow->Append(&promptWindow);
+	mainWindow->ChangeFocus(&promptWindow);
+	ResumeGui();
+
+        char *txt;
+	while(!progress->done) {
+            usleep(1000);
+            if(0 > asprintf(&txt, "Progress: %.01f%%", progress->percentage)) {
+                txt = strdup("Failed allocation");
+            }
+            HaltGui();
+            msgTxt.SetText(txt);
+            ResumeGui();
+            free(txt);
+	}
+
+	promptWindow.SetEffect(EFFECT_SLIDE_TOP | EFFECT_SLIDE_OUT, 50);
+	while(promptWindow.GetEffect() > 0) usleep(THREAD_SLEEP);
+	HaltGui();
+	mainWindow->Remove(&promptWindow);
+	mainWindow->SetState(STATE_DEFAULT);
+	ResumeGui();
+	return NULL;
 }
 
 /****************************************************************************
@@ -330,12 +388,6 @@ static int MenuBrowseDevice()
 			return MENU_BROWSE_DEVICE;
 		else
 			return MENU_SETTINGS;
-	} else {
-		WindowPrompt(
-		"Info",
-		c_result,
-		"Don't Click",
-		"Continue");
         }
 
 	int menu = MENU_NONE;

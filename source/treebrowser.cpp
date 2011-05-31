@@ -23,6 +23,7 @@
 
 #include <iview.h>
 
+#include "libwiigui/gui.h"
 #include "treebrowser.h"
 #include "menu.h"
 
@@ -43,8 +44,17 @@ struct IviewSeriesMetadata {
     int episodes_len;
 };
 
+struct IviewEpisodeMetadata {
+    struct iv_episode *episode;
+    GuiText *textElement;
+};
+
 int
 WindowPrompt(const char *title, const char *msg, const char *btn1Label, const char *btn2Label);
+
+void *DownloadInfo(void *);
+
+struct iv_progress download_progress;
 
 /****************************************************************************
  * ResetTreeBrowser()
@@ -105,12 +115,18 @@ int BrowserChangeNode(TreeBrowserInfo *info)
     return 0;
 }
 
+static int cpyprogress(const struct iv_progress *progress, void *user_data) {
+    memcpy(&download_progress, progress, sizeof(download_progress));
+    return 0;
+}
+
 static int DownloadEp(TreeBrowserNode *node)
 {
     struct IviewGlobalMetadata *globalMetadata = (struct IviewGlobalMetadata *)rootNode->data;
+    struct IviewEpisodeMetadata *episodeMetadata = (struct IviewEpisodeMetadata *)node->data;
     // Place files on the root of the SD card
     char *path;
-    if(0 > asprintf(&path, "/%s", basename((char *)((struct iv_episode *)node->data)->url))) {
+    if(0 > asprintf(&path, "/%s", basename((char *)episodeMetadata->episode->url))) {
         return -1;
     }
     // Oh noes...
@@ -128,8 +144,13 @@ static int DownloadEp(TreeBrowserNode *node)
         return error;
     }
     const int fd = fileno(f);
-    const int result = iv_easy_fetch_episode(globalMetadata->config,
-            (struct iv_episode *)node->data, fd);
+    lwp_t progress_display;
+    LWP_CreateThread(&progress_display, &DownloadInfo, (void *)&download_progress,
+            NULL, 0, 70);
+    const int result = iv_easy_fetch_episode_async(globalMetadata->config,
+            episodeMetadata->episode, fd, &cpyprogress, NULL);
+    int *lwp_result;
+    LWP_JoinThread(progress_display, (void **)&lwp_result);
     close(fd);
     free(path);
     return result;
@@ -187,8 +208,12 @@ static int GetSeries(TreeBrowserNode *node)
     TreeBrowserNode *children = &node->children[1];
     for(int j=0; j<seriesMetadata->episodes_len; j++) {
         // Store item struct in data element
+        struct IviewEpisodeMetadata *emd = (struct IviewEpisodeMetadata *)
+            calloc(1, sizeof(struct IviewEpisodeMetadata));
+        emd->episode = &seriesMetadata->episodes[j];
+        emd->textElement = NULL;
         populateNode(&children[j], &DownloadEp, NULL,
-                &seriesMetadata->episodes[j], node, NULL, 0,
+                emd, node, NULL, 0,
                 (char *)(seriesMetadata->episodes[j].title));
     }
     return 0;
